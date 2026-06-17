@@ -4,8 +4,9 @@ from .tokenizer import Tokenizer
 
 
 class Emulator:
-    def __init__(self):
+    def __init__(self, allow_functions: bool = True):
         self.world = World()
+        self.allow_functions = allow_functions
 
         self.dev_player = Player("Dev")
         self.world.add_entity(self.dev_player)
@@ -26,7 +27,10 @@ class Emulator:
             print(f"Error parsing/executing: '{cmd_str}'\n{e}")
         return 0
 
-    def execute_file(self, filepath: str, ctx: ExecutionContext = None) -> int:
+    def execute_file(self, filepath: str, ctx: ExecutionContext = None, macro_args: dict = None) -> int:
+        if not self.allow_functions:
+            print("\033[91m[Security] File system access is disabled. Cannot run .mcfunction\033[0m")
+            return 0
         from .exceptions import CommandReturn
         import os
         if not os.path.exists(filepath):
@@ -43,6 +47,15 @@ class Emulator:
             with open(filepath, "r") as f:
                 lines = f.readlines()
             for line in lines:
+                if macro_args:
+                    import re
+                    def replace_macro(match):
+                        key = match.group(1)
+                        if key in macro_args:
+                            return str(macro_args[key])
+                        return match.group(0)
+
+                    line = re.sub(r'\$\(([a-zA-Z0-9_]+)\)', replace_macro, line)
                 self.execute_command(line, ctx)
         except CommandReturn as e:
             return e.value
@@ -70,9 +83,17 @@ def start_repl():
     except ImportError:
         pass
 
+    try:
+        from importlib.metadata import version as get_version
+        version_str = "v" + get_version("mcemu")
+    except Exception:
+        version_str = "v1.0"
+
     emu = Emulator()
-    print("\033[96mMinecraft Command Engine v3.0 (Programmatic API)\033[0m")
-    print("\033[93mType 'exit' to quit, 'scores' to list scoreboards, 'entities' to list entities.\033[0m")
+    print(f"\033[96mMinecraft Command Engine {version_str} (Programmatic API)\033[0m")
+    print(
+        "\033[93mSpecial commands: exit, reset, scores, entities, toggleblocks, getblock <x> <y> <z>, returncode\033[0m")
+    last_returncode = 0
     while True:
         try:
             cmd = input("\033[94mmcemu> \033[0m")
@@ -80,6 +101,9 @@ def start_repl():
                 continue
             if cmd.strip().lower() == "exit":
                 break
+            elif cmd.strip().lower() == "returncode":
+                print(f"\033[92mLast return code: {last_returncode}\033[0m")
+                continue
             elif cmd.strip().lower() == "scores":
                 import json
                 print(json.dumps(emu.world.scoreboards, indent=2))
@@ -92,9 +116,31 @@ def start_repl():
                     if e.effects:
                         print(f"  effects: {e.effects}")
                 continue
+            elif cmd.strip().lower() == "reset":
+                emu.world = World()
+                emu.dev_player = Player("Dev")
+                emu.world.add_entity(emu.dev_player)
+                print("\033[92mWorld reset successfully.\033[0m")
+                continue
+            elif cmd.strip().lower() == "toggleblocks":
+                emu.world.track_blocks = not emu.world.track_blocks
+                state = "enabled" if emu.world.track_blocks else "disabled"
+                print(f"\033[92mBlock tracking {state}.\033[0m")
+                continue
+            elif cmd.strip().lower().startswith("getblock "):
+                parts = cmd.strip().split()
+                if len(parts) == 4:
+                    try:
+                        x, y, z = int(parts[1]), int(parts[2]), int(parts[3])
+                        block = emu.world.blocks.get((x, y, z), "minecraft:air")
+                        print(f"\033[92mBlock at {x} {y} {z}: {block}\033[0m")
+                    except ValueError:
+                        print("\033[91mInvalid coordinates. Usage: getblock <x> <y> <z>\033[0m")
+                else:
+                    print("\033[91mUsage: getblock <x> <y> <z>\033[0m")
+                continue
             res = emu.execute_command(cmd)
-            if res != 0:
-                print(f"\033[92mdata returned {res}\033[0m")
+            last_returncode = res
         except KeyboardInterrupt:
             break
         except EOFError:

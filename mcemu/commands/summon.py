@@ -7,6 +7,9 @@ from ..entity import Entity
 
 def summon_cmd(ctx: ExecutionContext, entity_type: str, pos_x: str = "~", pos_y: str = "~", pos_z: str = "~",
                nbt: str = "{}", **kwargs):
+    if ":" not in entity_type:
+        entity_type = f"minecraft:{entity_type}"
+
     pos = ctx.position
     try:
         pos = (float(pos_x.replace("~", "") or 0) + (ctx.position[0] if "~" in pos_x else 0),

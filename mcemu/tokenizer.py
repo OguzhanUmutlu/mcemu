@@ -68,8 +68,8 @@ class Tokenizer:
                 continue
 
             start = self.pos
-            while (self.pos < len(self.text) and not self.text[self.pos].isspace()
-                   and self.text[self.pos] not in "=+-*/%<>[]{},:!@"):
+            while (self.pos < len(self.text) and not self.text[self.pos].isspace() and self.text[
+                self.pos] not in "=+-*/%<>[]{},:!@"):
 
                 if self.text[self.pos] == ".":
                     if self.pos + 1 < len(self.text) and self.text[self.pos + 1] == ".":

@@ -17,6 +17,14 @@ class Entity:
         self.effects: Dict[str, Dict[str, Any]] = {}
         self.inventory: Dict[str, Dict[str, Any]] = {}
 
+        self.health = 20.0
+        self.max_health = 20.0
+        self.attributes: Dict[str, float] = {}
+        self.advancements: Set[str] = set()
+        self.xp_points = 0
+        self.xp_levels = 0
+        self.gamemode = "survival"
+
         self.is_dead = False
 
     def __repr__(self):
@@ -39,6 +47,21 @@ class World:
         self.nbt_storage: Dict[str, Dict[str, Any]] = {}
         self.current_tick: int = 0
         self.scheduled_tasks: List[Dict[str, Any]] = []
+
+        self.blocks: Dict[Tuple[int, int, int], str] = {}
+        self.track_blocks = False
+
+        self.time: int = 0
+        self.weather: str = "clear"
+        self.difficulty: str = "normal"
+        self.gamerules: Dict[str, Any] = {}
+        self.worldborder: Dict[str, Any] = {"center": (0.0, 0.0), "size": 60000000.0}
+
+        self.banned: Set[str] = set()
+        self.banned_ips: Set[str] = set()
+        self.opped: Set[str] = set()
+        self.whitelisted: Set[str] = set()
+        self.seed: int = 0
 
     def add_entity(self, entity: Entity):
         self.entities.append(entity)

@@ -51,6 +51,52 @@ class GreedyStringArgument(ArgumentType):
         return val.strip(), pos
 
 
+class NBTArgument(ArgumentType):
+    def get_name(self) -> str:
+        return "nbt"
+
+    def parse(self, tokens, pos: int):
+        if pos >= len(tokens):
+            raise CommandSyntaxError("Expected NBT")
+
+        nbt_str = ""
+        if tokens[pos].value != "{":
+            raise CommandSyntaxError("Expected '{' for NBT compound")
+
+        depth = 0
+        while pos < len(tokens):
+            val = tokens[pos].value
+            if val == "{":
+                depth += 1
+            elif val == "}":
+                depth -= 1
+
+            nbt_str += val if tokens[pos].type != "STRING" else f'"{val}"'
+            pos += 1
+
+            if depth == 0:
+                break
+
+        if depth > 0:
+            raise CommandSyntaxError("Unbalanced braces in NBT")
+
+        # Very basic parsing into a dictionary (simplified for emulator)
+        # Assumes format like {a: 42, b: "hi"}
+        # We will use ast.literal_eval with some replacements
+        import re
+        dict_str = nbt_str
+        # Replace unquoted keys with quoted keys
+        dict_str = re.sub(r'([a-zA-Z0-9_]+)\s*:', r'"\1":', dict_str)
+        try:
+            # We use json for safety instead of eval
+            import json
+            nbt_dict = json.loads(dict_str)
+            return nbt_dict, pos
+        except Exception:
+            # Fallback if json fails, we can't easily parse complex unquoted NBT strings, just return empty for now
+            return {}, pos
+
+
 class PathArgument(ArgumentType):
     def parse(self, tokens, pos: int):
         if pos >= len(tokens):
@@ -159,6 +205,13 @@ class PseudoSelectorArgument(ArgumentType):
                         raise CommandSyntaxError("Expected '=' in selector")
                     pos += 1
                     val, pos = WordArgument().parse(tokens, pos)
+
+                    if key_val == "type":
+                        if val.startswith("!") and ":" not in val:
+                            val = f"!minecraft:{val[1:]}"
+                        elif not val.startswith("!") and ":" not in val:
+                            val = f"minecraft:{val}"
+
                     args[key_val] = val
                     if pos < len(tokens) and tokens[pos].value == ",":
                         pos += 1
@@ -223,3 +276,105 @@ class ItemArgument(ArgumentType):
 class SlotArgument(WordArgument):
     def get_name(self) -> str:
         return "slot"
+
+
+class CoordinateData:
+    def __init__(self, value: float, is_relative: bool, is_local: bool):
+        self.value = value
+        self.is_relative = is_relative
+        self.is_local = is_local
+
+    def resolve(self, base: float) -> float:
+        if self.is_relative or self.is_local:
+            return base + self.value
+        return self.value
+
+
+class CoordinateArgument(ArgumentType):
+    def get_name(self) -> str:
+        return "coordinate"
+
+    def parse(self, tokens, pos: int):
+        if pos >= len(tokens):
+            raise CommandSyntaxError("Expected coordinate")
+
+        t = tokens[pos].value
+        is_rel = False
+        is_loc = False
+        val_str = t
+
+        if t.startswith("~"):
+            is_rel = True
+            val_str = t[1:]
+        elif t.startswith("^"):
+            is_loc = True
+            val_str = t[1:]
+
+        val = 0.0
+        if val_str:
+            try:
+                val = float(val_str)
+            except ValueError:
+                raise CommandSyntaxError(f"Invalid coordinate: {t}")
+
+        return CoordinateData(val, is_rel, is_loc), pos + 1
+
+
+class BlockPosArgument(ArgumentType):
+    def get_name(self) -> str:
+        return "block_pos"
+
+    def parse(self, tokens, pos: int):
+        x, pos = CoordinateArgument().parse(tokens, pos)
+        y, pos = CoordinateArgument().parse(tokens, pos)
+        z, pos = CoordinateArgument().parse(tokens, pos)
+        return (x, y, z), pos
+
+
+class BlockStateData:
+    def __init__(self, block_id: str, state: str = "", nbt: str = ""):
+        self.block_id = block_id
+        self.state = state
+        self.nbt = nbt
+
+
+class BlockStateArgument(ArgumentType):
+    def get_name(self) -> str:
+        return "block_state"
+
+    def parse(self, tokens, pos: int):
+        if pos >= len(tokens):
+            raise CommandSyntaxError("Expected block state")
+
+        block_id, pos = WordArgument().parse(tokens, pos)
+        if ":" not in block_id:
+            block_id = f"minecraft:{block_id}"
+
+        state = ""
+        nbt = ""
+
+        if pos < len(tokens) and tokens[pos].value == "[":
+            depth = 0
+            while pos < len(tokens):
+                val = tokens[pos].value
+                if val == "[":
+                    depth += 1
+                elif val == "]":
+                    depth -= 1
+                state += val
+                pos += 1
+                if depth == 0: break
+
+        if pos < len(tokens) and tokens[pos].value == "{":
+            depth = 0
+            while pos < len(tokens):
+                val = tokens[pos].value
+                if val == "{":
+                    depth += 1
+                elif val == "}":
+                    depth -= 1
+                nbt += val
+                pos += 1
+                if depth == 0: break
+
+        return BlockStateData(block_id, state, nbt), pos
