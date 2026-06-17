@@ -75,8 +75,10 @@ class ExecuteStoreResultModifier(ExecuteModifier):
                 ctx.world.nbt_storage[target_key] = {}
             set_nested_dict(ctx.world.nbt_storage[target_key], path, scaled_res)
 
+
 import math
 from ..entity import Entity
+
 
 class ExecutePositionedModifier(ExecuteModifier):
     def modify(self, ctx: ExecutionContext, args: dict) -> List[ExecutionContext]:
@@ -91,6 +93,7 @@ class ExecutePositionedModifier(ExecuteModifier):
             return [new_ctx]
         return [ctx]
 
+
 class ExecutePositionedAsModifier(ExecuteModifier):
     def modify(self, ctx: ExecutionContext, args: dict) -> List[ExecutionContext]:
         targets = args.get("target", [])
@@ -103,6 +106,7 @@ class ExecutePositionedAsModifier(ExecuteModifier):
                 contexts.append(new_ctx)
         return contexts
 
+
 class ExecuteFacingModifier(ExecuteModifier):
     def modify(self, ctx: ExecutionContext, args: dict) -> List[ExecutionContext]:
         pos = args.get("pos")
@@ -110,18 +114,19 @@ class ExecuteFacingModifier(ExecuteModifier):
             target_x = pos[0].resolve(ctx.position[0])
             target_y = pos[1].resolve(ctx.position[1])
             target_z = pos[2].resolve(ctx.position[2])
-            
+
             dx = target_x - ctx.position[0]
             dy = target_y - ctx.position[1]
             dz = target_z - ctx.position[2]
-            
+
             yaw = math.degrees(math.atan2(-dx, dz))
-            pitch = math.degrees(-math.atan2(dy, math.sqrt(dx*dx + dz*dz)))
-            
+            pitch = math.degrees(-math.atan2(dy, math.sqrt(dx * dx + dz * dz)))
+
             new_ctx = ctx.clone()
             new_ctx.rotation = (yaw, pitch)
             return [new_ctx]
         return [ctx]
+
 
 class ExecuteFacingEntityModifier(ExecuteModifier):
     def modify(self, ctx: ExecutionContext, args: dict) -> List[ExecutionContext]:
@@ -134,12 +139,13 @@ class ExecuteFacingEntityModifier(ExecuteModifier):
                 dy = entity.pos[1] - ctx.position[1]
                 dz = entity.pos[2] - ctx.position[2]
                 yaw = math.degrees(math.atan2(-dx, dz))
-                pitch = math.degrees(-math.atan2(dy, math.sqrt(dx*dx + dz*dz)))
-                
+                pitch = math.degrees(-math.atan2(dy, math.sqrt(dx * dx + dz * dz)))
+
                 new_ctx = ctx.clone()
                 new_ctx.rotation = (yaw, pitch)
                 contexts.append(new_ctx)
         return contexts
+
 
 class ExecuteRotatedModifier(ExecuteModifier):
     def modify(self, ctx: ExecutionContext, args: dict) -> List[ExecutionContext]:
@@ -154,6 +160,7 @@ class ExecuteRotatedModifier(ExecuteModifier):
             return [new_ctx]
         return [ctx]
 
+
 class ExecuteRotatedAsModifier(ExecuteModifier):
     def modify(self, ctx: ExecutionContext, args: dict) -> List[ExecutionContext]:
         targets = args.get("target", [])
@@ -166,6 +173,7 @@ class ExecuteRotatedAsModifier(ExecuteModifier):
                 contexts.append(new_ctx)
         return contexts
 
+
 class ExecuteAlignedModifier(ExecuteModifier):
     def modify(self, ctx: ExecutionContext, args: dict) -> List[ExecutionContext]:
         axes = args.get("axes", "")
@@ -177,12 +185,14 @@ class ExecuteAlignedModifier(ExecuteModifier):
         new_ctx.position = (x, y, z)
         return [new_ctx]
 
+
 class ExecuteAnchoredModifier(ExecuteModifier):
     def modify(self, ctx: ExecutionContext, args: dict) -> List[ExecutionContext]:
         anchor = args.get("anchor", "feet")
         new_ctx = ctx.clone()
         new_ctx.anchor = anchor
         return [new_ctx]
+
 
 class ExecuteInModifier(ExecuteModifier):
     def modify(self, ctx: ExecutionContext, args: dict) -> List[ExecutionContext]:
@@ -191,11 +201,12 @@ class ExecuteInModifier(ExecuteModifier):
         new_ctx.dimension = dimension
         return [new_ctx]
 
+
 class ExecuteOnModifier(ExecuteModifier):
     def modify(self, ctx: ExecutionContext, args: dict) -> List[ExecutionContext]:
         relation = args.get("relation", "")
         if not ctx.executor: return []
-        
+
         contexts = []
         if relation == "owner":
             owner_uuid = ctx.executor.nbt.get("Owner")
@@ -239,6 +250,7 @@ class ExecuteOnModifier(ExecuteModifier):
                     contexts.append(new_ctx)
         return contexts
 
+
 class ExecuteSummonModifier(ExecuteModifier):
     def modify(self, ctx: ExecutionContext, args: dict) -> List[ExecutionContext]:
         entity_type = args.get("entity_type", "minecraft:pig")
@@ -247,10 +259,11 @@ class ExecuteSummonModifier(ExecuteModifier):
         new_entity = Entity(entity_type, pos=ctx.position)
         new_entity.rotation = ctx.rotation
         ctx.world.add_entity(new_entity)
-        
+
         new_ctx = ctx.clone()
         new_ctx.executor = new_entity
         return [new_ctx]
+
 
 class ExecuteIfScoreModifier(ExecuteModifier):
     def __init__(self, invert: bool = False):
@@ -270,16 +283,22 @@ class ExecuteIfScoreModifier(ExecuteModifier):
             return [] if not self.invert else [ctx]
 
         result = False
-        if op == "<": result = val1 < val2
-        elif op == "<=": result = val1 <= val2
-        elif op == "=": result = val1 == val2
-        elif op == ">=": result = val1 >= val2
-        elif op == ">": result = val1 > val2
+        if op == "<":
+            result = val1 < val2
+        elif op == "<=":
+            result = val1 <= val2
+        elif op == "=":
+            result = val1 == val2
+        elif op == ">=":
+            result = val1 >= val2
+        elif op == ">":
+            result = val1 > val2
 
         if self.invert:
             result = not result
 
         return [ctx] if result else []
+
 
 class ExecuteIfScoreMatchesModifier(ExecuteModifier):
     def __init__(self, invert: bool = False):
@@ -304,13 +323,14 @@ class ExecuteIfScoreMatchesModifier(ExecuteModifier):
 
         return [ctx] if result else []
 
+
 class ExecuteIfEntityModifier(ExecuteModifier):
     def __init__(self, invert: bool = False):
         self.invert = invert
 
     def modify(self, ctx: ExecutionContext, args: dict) -> List[ExecutionContext]:
         targets = args.get("target", [])
-        
+
         found = False
         for t in targets:
             entity = next((e for e in ctx.world.entities if e.uuid == t or e.name == t), None)
@@ -323,6 +343,7 @@ class ExecuteIfEntityModifier(ExecuteModifier):
 
         return [ctx] if found else []
 
+
 class ExecuteIfBlockModifier(ExecuteModifier):
     def __init__(self, invert: bool = False):
         self.invert = invert
@@ -330,37 +351,36 @@ class ExecuteIfBlockModifier(ExecuteModifier):
     def modify(self, ctx: ExecutionContext, args: dict) -> List[ExecutionContext]:
         pos = args.get("pos")
         block_state = args.get("block")
-        
+
         target_x = math.floor(pos[0].resolve(ctx.position[0]))
         target_y = math.floor(pos[1].resolve(ctx.position[1]))
         target_z = math.floor(pos[2].resolve(ctx.position[2]))
-        
+
         current_block = ctx.world.blocks.get((target_x, target_y, target_z), "minecraft:air")
-        
+
         result = (current_block == block_state.block_id)
         if self.invert:
             result = not result
-            
+
         return [ctx] if result else []
+
 
 class ExecuteIfBlocksModifier(ExecuteModifier):
     def __init__(self, invert: bool = False):
         self.invert = invert
 
     def modify(self, ctx: ExecutionContext, args: dict) -> List[ExecutionContext]:
-        # Not fully implemented block-by-block comparison for performance, 
-        # but stubbed appropriately.
         result = False
         if self.invert:
             result = not result
         return [ctx] if result else []
+
 
 class ExecuteIfDataModifier(ExecuteModifier):
     def __init__(self, invert: bool = False):
         self.invert = invert
 
     def modify(self, ctx: ExecutionContext, args: dict) -> List[ExecutionContext]:
-        # Stubbed data check
         result = False
         if self.invert:
             result = not result

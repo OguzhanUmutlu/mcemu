@@ -33,8 +33,6 @@ class IntRangeArgument(ArgumentType):
         if pos >= len(tokens):
             raise CommandSyntaxError("Expected integer range")
             
-        # Ranges can be parsed as a single token like "10..20" or multiple tokens "10", "..", "20"
-        # We need to gracefully read them.
         val = ""
         start_pos = pos
         while pos < len(tokens):
