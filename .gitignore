@@ -1,0 +1,5 @@
+mcemu.egg-info
+venv
+.vscode
+.idea
+dist
