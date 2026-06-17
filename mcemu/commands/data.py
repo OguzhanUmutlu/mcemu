@@ -1,3 +1,5 @@
+import json
+
 from ..command_tree.arguments import GreedyStringArgument, PseudoSelectorArgument, WordArgument
 from ..command_tree.builder import literal, argument
 from ..command_tree.dispatcher import dispatcher
@@ -76,7 +78,6 @@ def data_modify_merge(ctx: ExecutionContext, target_type: str, target: list, pat
     if "NBTType" in target_type:
         target_type = target_type.split(".")[-1].lower()
 
-    import json
     try:
         val = json.loads(value)
     except:

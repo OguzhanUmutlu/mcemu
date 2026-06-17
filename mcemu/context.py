@@ -1,3 +1,4 @@
+import random
 from typing import List
 
 from .command_tree.arguments import TargetSelectorData
@@ -29,7 +30,6 @@ def resolve_target_selector(selector: TargetSelectorData, ctx: ExecutionContext)
         if ctx.executor:
             candidates = [ctx.executor]
     elif selector.base == "r":
-        import random
         if ctx.world.entities:
             candidates = [random.choice(ctx.world.entities)]
 

@@ -1,3 +1,7 @@
+import json
+import re
+
+
 class CommandSyntaxError(Exception):
     pass
 
@@ -80,16 +84,9 @@ class NBTArgument(ArgumentType):
         if depth > 0:
             raise CommandSyntaxError("Unbalanced braces in NBT")
 
-        # Very basic parsing into a dictionary (simplified for emulator)
-        # Assumes format like {a: 42, b: "hi"}
-        # We will use ast.literal_eval with some replacements
-        import re
         dict_str = nbt_str
-        # Replace unquoted keys with quoted keys
         dict_str = re.sub(r'([a-zA-Z0-9_]+)\s*:', r'"\1":', dict_str)
         try:
-            # We use json for safety instead of eval
-            import json
             nbt_dict = json.loads(dict_str)
             return nbt_dict, pos
         except Exception:

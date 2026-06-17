@@ -1,5 +1,6 @@
 from typing import List
 
+from ..commands.data import set_nested_dict
 from ..context import ExecutionContext
 
 
@@ -59,7 +60,6 @@ class ExecuteStoreResultModifier(ExecuteModifier):
         multiplier = float(args.get("store_multiplier", 1.0))
         datatype = args.get("store_datatype", "int")
 
-        from ..commands.data import set_nested_dict
         if "NBTType" in store_type:
             store_type = store_type.split(".")[-1].lower()
 

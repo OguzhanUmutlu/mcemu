@@ -1,3 +1,4 @@
+import difflib
 from typing import List, Dict, Any, Tuple
 
 from .arguments import CommandSyntaxError, TargetSelectorData
@@ -100,7 +101,6 @@ class CommandDispatcher:
                 best_fail_pos = pos
                 best_fail_node = last_node
 
-        import difflib
         err_token = tokens[best_fail_pos].value if best_fail_pos < len(tokens) else ""
         paths = self.get_valid_paths(best_fail_node)
 

@@ -1,5 +1,12 @@
+import json
+import os
+import re
+import readline
+from importlib.metadata import version as get_version
+
 from .command_tree.dispatcher import dispatcher
 from .entity import World, Player, ExecutionContext
+from .exceptions import CommandReturn
 from .tokenizer import Tokenizer
 
 
@@ -21,7 +28,6 @@ class Emulator:
                                        emulator=self)
             return dispatcher.dispatch(tokens, ctx)
         except Exception as e:
-            from .exceptions import CommandReturn
             if isinstance(e, CommandReturn):
                 raise e
             print(f"Error parsing/executing: '{cmd_str}'\n{e}")
@@ -31,8 +37,6 @@ class Emulator:
         if not self.allow_functions:
             print("\033[91m[Security] File system access is disabled. Cannot run .mcfunction\033[0m")
             return 0
-        from .exceptions import CommandReturn
-        import os
         if not os.path.exists(filepath):
             if os.path.exists(filepath + ".mcfunction"):
                 filepath += ".mcfunction"
@@ -48,7 +52,6 @@ class Emulator:
                 lines = f.readlines()
             for line in lines:
                 if macro_args:
-                    import re
                     def replace_macro(match):
                         key = match.group(1)
                         if key in macro_args:
@@ -72,8 +75,6 @@ class Emulator:
 
 def start_repl():
     try:
-        import readline
-
         readline.parse_and_bind(r'"\C-l": clear-screen')
 
         readline.parse_and_bind(r'"\e[1;5C": forward-word')
@@ -84,7 +85,6 @@ def start_repl():
         pass
 
     try:
-        from importlib.metadata import version as get_version
         version_str = "v" + get_version("mcemu")
     except Exception:
         version_str = "v1.0"
@@ -105,7 +105,6 @@ def start_repl():
                 print(f"\033[92mLast return code: {last_returncode}\033[0m")
                 continue
             elif cmd.strip().lower() == "scores":
-                import json
                 print(json.dumps(emu.world.scoreboards, indent=2))
                 continue
             elif cmd.strip().lower() == "entities":

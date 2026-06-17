@@ -1,3 +1,5 @@
+import json
+
 from ..command_tree.arguments import WordArgument, GreedyStringArgument
 from ..command_tree.builder import literal, argument
 from ..command_tree.dispatcher import dispatcher
@@ -19,7 +21,6 @@ def summon_cmd(ctx: ExecutionContext, entity_type: str, pos_x: str = "~", pos_y:
         pass
 
     entity = Entity(entity_type, pos=pos)
-    import json
     try:
         parsed_nbt = json.loads(nbt)
         entity.nbt.update(parsed_nbt)
