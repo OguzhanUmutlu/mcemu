@@ -101,11 +101,12 @@ for condition_mode in ["if", "unless"]:
         literal("entity").then(argument("target", SelectorArgument()).forks(execute_subcommand, ExecuteIfEntityModifier(invert)))
     )
     # score
-    score_node = literal("score").then(argument("target", SelectorArgument()).then(argument("target_obj", ObjectiveArgument())))
-    score_node.then(
+    target_obj_node = argument("target_obj", ObjectiveArgument())
+    score_node = literal("score").then(argument("target", SelectorArgument()).then(target_obj_node))
+    target_obj_node.then(
         literal("matches").then(argument("range", IntRangeArgument()).forks(execute_subcommand, ExecuteIfScoreMatchesModifier(invert)))
     )
-    score_node.then(
+    target_obj_node.then(
         argument("op", WordArgument()).then(argument("source", SelectorArgument()).then(argument("source_obj", ObjectiveArgument()).forks(execute_subcommand, ExecuteIfScoreModifier(invert))))
     )
     condition_node.then(score_node)

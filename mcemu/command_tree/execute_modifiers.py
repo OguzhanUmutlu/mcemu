@@ -2,6 +2,7 @@ from typing import List
 
 from ..commands.data import set_nested_dict
 from ..context import ExecutionContext
+from .arguments import TargetSelectorData
 
 
 class ExecuteModifier:
@@ -275,46 +276,53 @@ class ExecuteIfScoreModifier(ExecuteModifier):
         op = args.get("op")
         source = args.get("source")
         source_obj = args.get("source_obj")
-
-        try:
-            val1 = ctx.world.get_score(target.base, target_obj)
-            val2 = ctx.world.get_score(source.base, source_obj)
-        except RuntimeError:
+        
+        if not target or not source:
             return [] if not self.invert else [ctx]
 
-        result = False
-        if op == "<":
-            result = val1 < val2
-        elif op == "<=":
-            result = val1 <= val2
-        elif op == "=":
-            result = val1 == val2
-        elif op == ">=":
-            result = val1 >= val2
-        elif op == ">":
-            result = val1 > val2
+        target_str = target.base if isinstance(target, TargetSelectorData) else target[0] if target else ""
+        source_str = source.base if isinstance(source, TargetSelectorData) else source[0] if source else ""
 
-        if self.invert:
-            result = not result
-
-        return [ctx] if result else []
+        try:
+            val1 = ctx.world.get_score(target_str, target_obj)
+            val2 = ctx.world.get_score(source_str, source_obj)
+            
+            if op == "<": condition = val1 < val2
+            elif op == "<=": condition = val1 <= val2
+            elif op == "=": condition = val1 == val2
+            elif op == ">=": condition = val1 >= val2
+            elif op == ">": condition = val1 > val2
+            else: return [] if not self.invert else [ctx]
+            
+            if self.invert:
+                condition = not condition
+                
+            return [ctx] if condition else []
+        except Exception:
+            return [] if not self.invert else [ctx]
 
 
 class ExecuteIfScoreMatchesModifier(ExecuteModifier):
-    def __init__(self, invert: bool = False):
+    def __init__(self, invert: bool):
         self.invert = invert
 
     def modify(self, ctx: ExecutionContext, args: dict) -> List[ExecutionContext]:
         target = args.get("target")
         target_obj = args.get("target_obj")
-        range_min, range_max = args.get("range", (None, None))
+        range_val = args.get("range")
+        
+        if not target:
+            return [] if not self.invert else [ctx]
 
+        target_str = target.base if isinstance(target, TargetSelectorData) else target[0] if target else ""
+        
         try:
-            val = ctx.world.get_score(target.base, target_obj)
+            val = ctx.world.get_score(target_str, target_obj)
         except RuntimeError:
             return [] if not self.invert else [ctx]
 
         result = True
+        range_min, range_max = range_val
         if range_min is not None and val < range_min: result = False
         if range_max is not None and val > range_max: result = False
 

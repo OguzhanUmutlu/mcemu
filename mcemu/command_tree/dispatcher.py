@@ -54,6 +54,9 @@ class CommandDispatcher:
         if node.redirect:
             if node.modifier:
                 parse_ctx.modifiers.append((node.modifier, parse_ctx.arguments.copy()))
+                parse_ctx.arguments.clear()
+            elif node.redirect == self.root:
+                parse_ctx.arguments.clear()
             return self.parse_node(node.redirect, tokens, pos, parse_ctx)
 
         best_fail_node = node

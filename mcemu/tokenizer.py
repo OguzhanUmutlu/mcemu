@@ -39,7 +39,7 @@ class Tokenizer:
                 self.pos += 1
                 continue
 
-            if char in "=+-*/%<>[]{},:!@.":
+            if char in "=+-*/%<>[]{},:@.":
                 op = char
                 self.pos += 1
 
@@ -64,12 +64,12 @@ class Tokenizer:
                     continue
 
                 tokens.append(
-                    Token("PUNCT" if op in ("[", "]", "{", "}", ",", ":", "!", "@", ".", "..") else "OPERATOR", op))
+                    Token("PUNCT" if op in ("[", "]", "{", "}", ",", ":", "@", ".", "..") else "OPERATOR", op))
                 continue
 
             start = self.pos
             while (self.pos < len(self.text) and not self.text[self.pos].isspace() and self.text[
-                self.pos] not in "=+-*/%<>[]{},:!@"):
+                self.pos] not in "=+-*/%<>[]{},:@"):
 
                 if self.text[self.pos] == ".":
                     if self.pos + 1 < len(self.text) and self.text[self.pos + 1] == ".":
