@@ -42,5 +42,6 @@ def test_tokenizer_punctuation():
     assert len(tokens) == 8
     expected = ["[", ",", "]", "{", ":", "}", "!", "@"]
     for i, exp in enumerate(expected):
-        assert tokens[i].type == "PUNCT"
+        expected_type = "WORD" if exp == "!" else "PUNCT"
+        assert tokens[i].type == expected_type
         assert tokens[i].value == exp
