@@ -174,3 +174,50 @@ class PseudoSelectorArgument(ArgumentType):
 class SelectorArgument(PseudoSelectorArgument):
     def get_name(self) -> str:
         return "target"
+
+
+class ItemData:
+    def __init__(self, item_id: str, nbt: str = ""):
+        self.item_id = item_id
+        self.nbt = nbt
+
+
+class ItemArgument(ArgumentType):
+    def get_name(self) -> str:
+        return "item"
+
+    def parse(self, tokens, pos: int):
+        if pos >= len(tokens):
+            raise CommandSyntaxError("Expected item")
+            
+        item_id, pos = WordArgument().parse(tokens, pos)
+        
+        nbt = ""
+        if pos < len(tokens) and tokens[pos].value in ("{", "["):
+            open_bracket = tokens[pos].value
+            close_bracket = "}" if open_bracket == "{" else "]"
+            depth = 0
+            
+            while pos < len(tokens):
+                val = tokens[pos].value
+                # Basic depth counting for NBT/components
+                if val in ("{", "["):
+                    depth += 1
+                elif val in ("}", "]"):
+                    depth -= 1
+                    
+                nbt += val if tokens[pos].type != "STRING" else f"'{val}'"
+                pos += 1
+                
+                if depth == 0:
+                    break
+                    
+            if depth > 0:
+                raise CommandSyntaxError("Unbalanced brackets in item components/NBT")
+                
+        return ItemData(item_id, nbt), pos
+
+
+class SlotArgument(WordArgument):
+    def get_name(self) -> str:
+        return "slot"

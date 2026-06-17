@@ -89,6 +89,10 @@ def start_repl():
             elif cmd.strip().lower() == "entities":
                 for e in emu.world.entities:
                     print(f"- {e.uuid} ({e.type}) at {e.pos} tags: {e.tags}")
+                    if e.inventory:
+                        print(f"  inventory: {e.inventory}")
+                    if e.effects:
+                        print(f"  effects: {e.effects}")
                 continue
             res = emu.execute_command(cmd)
             if res != 0:

@@ -14,6 +14,8 @@ class Entity:
         self.scores: Dict[str, int] = {}
         self.nbt: Dict[str, Any] = {}
         self.team: str = None
+        self.effects: Dict[str, Dict[str, Any]] = {}
+        self.inventory: Dict[str, Dict[str, Any]] = {}
 
         self.is_dead = False
 

@@ -3,6 +3,9 @@ set -e
 
 cd "$(dirname "$0")"
 
+echo "Running tests before publishing..."
+./run_tests.sh
+
 echo "Setting up virtual environment..."
 if [ ! -d "venv" ]; then
     python3 -m venv venv

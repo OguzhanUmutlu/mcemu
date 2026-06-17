@@ -65,3 +65,13 @@ def resolve_single_target(selector: TargetSelectorData, ctx: ExecutionContext) -
     if not targets:
         return ""
     return targets[0]
+
+
+def get_entities_from_target_strings(ctx: ExecutionContext, targets: List[str]) -> list:
+    entities = []
+    for t in targets:
+        for e in ctx.world.entities:
+            if e.name == t or e.uuid == t:
+                entities.append(e)
+                break
+    return entities
