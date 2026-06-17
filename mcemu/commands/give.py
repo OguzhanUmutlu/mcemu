@@ -3,6 +3,7 @@ from ..command_tree.dispatcher import dispatcher
 from ..command_tree.nodes import LiteralNode, ArgumentNode
 from ..context import ExecutionContext, get_entities_from_target_strings
 
+
 def exec_give(ctx: ExecutionContext, target: list, item: ItemData, count: int = 1) -> int:
     total_given = 0
     entities = get_entities_from_target_strings(ctx, target)
@@ -19,6 +20,7 @@ def exec_give(ctx: ExecutionContext, target: list, item: ItemData, count: int = 
             entity.inventory["inventory.overflow"] = {"id": item.item_id, "count": count, "nbt": item.nbt}
             total_given += count
     return total_given
+
 
 give_cmd = LiteralNode("give")
 target_node = ArgumentNode("target", SelectorArgument())

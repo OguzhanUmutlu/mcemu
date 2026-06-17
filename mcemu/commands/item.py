@@ -3,6 +3,7 @@ from ..command_tree.dispatcher import dispatcher
 from ..command_tree.nodes import LiteralNode, ArgumentNode
 from ..context import ExecutionContext, get_entities_from_target_strings
 
+
 def exec_item_replace_entity(ctx: ExecutionContext, target: list, slot: str, item: ItemData, count: int = 1) -> int:
     changed = 0
     entities = get_entities_from_target_strings(ctx, target)
@@ -10,6 +11,7 @@ def exec_item_replace_entity(ctx: ExecutionContext, target: list, slot: str, ite
         entity.inventory[slot] = {"id": item.item_id, "count": count, "nbt": item.nbt}
         changed += 1
     return changed
+
 
 item_cmd = LiteralNode("item")
 replace_node = LiteralNode("replace")

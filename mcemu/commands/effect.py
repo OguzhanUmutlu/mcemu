@@ -3,7 +3,10 @@ from ..command_tree.dispatcher import dispatcher
 from ..command_tree.nodes import LiteralNode, ArgumentNode
 from ..context import ExecutionContext, get_entities_from_target_strings
 
+
 def exec_effect_clear(ctx: ExecutionContext, target: list, effect: str = None) -> int:
+    if effect is not None and ":" not in effect:
+        effect = f"minecraft:{effect}"
     count = 0
     entities = get_entities_from_target_strings(ctx, target)
     for entity in entities:
@@ -17,7 +20,11 @@ def exec_effect_clear(ctx: ExecutionContext, target: list, effect: str = None) -
                 count += 1
     return count
 
-def exec_effect_give(ctx: ExecutionContext, target: list, effect: str, seconds: int = 30, amplifier: int = 0, hideParticles: str = "false") -> int:
+
+def exec_effect_give(ctx: ExecutionContext, target: list, effect: str, seconds: int = 30, amplifier: int = 0,
+                     hideParticles: str = "false") -> int:
+    if ":" not in effect:
+        effect = f"minecraft:{effect}"
     count = 0
     entities = get_entities_from_target_strings(ctx, target)
     for entity in entities:
@@ -28,6 +35,7 @@ def exec_effect_give(ctx: ExecutionContext, target: list, effect: str, seconds: 
         }
         count += 1
     return count
+
 
 effect_cmd = LiteralNode("effect")
 clear_node = LiteralNode("clear")

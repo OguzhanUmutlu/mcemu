@@ -1,6 +1,5 @@
 from typing import List
 
-from .arguments import TargetSelectorData
 from ..context import ExecutionContext
 
 

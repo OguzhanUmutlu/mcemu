@@ -3,7 +3,10 @@ from ..command_tree.dispatcher import dispatcher
 from ..command_tree.nodes import LiteralNode, ArgumentNode
 from ..context import ExecutionContext, get_entities_from_target_strings
 
+
 def exec_enchant(ctx: ExecutionContext, target: list, enchantment: str, level: int = 1) -> int:
+    if ":" not in enchantment:
+        enchantment = f"minecraft:{enchantment}"
     count = 0
     entities = get_entities_from_target_strings(ctx, target)
     for entity in entities:
@@ -14,6 +17,7 @@ def exec_enchant(ctx: ExecutionContext, target: list, enchantment: str, level: i
             item["Enchantments"][enchantment] = level
             count += 1
     return count
+
 
 enchant_cmd = LiteralNode("enchant")
 target_node = ArgumentNode("target", SelectorArgument())

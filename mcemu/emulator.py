@@ -1,8 +1,6 @@
 from .command_tree.dispatcher import dispatcher
 from .entity import World, Player, ExecutionContext
 from .tokenizer import Tokenizer
-import mcemu.commands  # Register commands
-
 
 
 class Emulator:

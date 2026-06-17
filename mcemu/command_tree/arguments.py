@@ -60,7 +60,7 @@ class PathArgument(ArgumentType):
         if tokens[pos].type == "WORD":
             val += tokens[pos].value
             pos += 1
-            
+
         while pos < len(tokens):
             t = tokens[pos]
             if t.value in ("/", "-", "_", ":", ".", "\\"):
@@ -71,7 +71,7 @@ class PathArgument(ArgumentType):
                     pos += 1
             else:
                 break
-                
+
         if not val:
             raise CommandSyntaxError("Expected path")
         return val, pos
@@ -81,11 +81,11 @@ class TimeArgument(ArgumentType):
     def parse(self, tokens, pos: int):
         if pos >= len(tokens):
             raise CommandSyntaxError("Expected time")
-            
+
         t = tokens[pos]
         val = t.value
         pos += 1
-        
+
         multiplier = 1
         if val.endswith("t"):
             val = val[:-1]
@@ -95,7 +95,7 @@ class TimeArgument(ArgumentType):
         elif val.endswith("d"):
             val = val[:-1]
             multiplier = 24000
-            
+
         try:
             return int(val) * multiplier, pos
         except ValueError:
@@ -189,32 +189,34 @@ class ItemArgument(ArgumentType):
     def parse(self, tokens, pos: int):
         if pos >= len(tokens):
             raise CommandSyntaxError("Expected item")
-            
+
         item_id, pos = WordArgument().parse(tokens, pos)
-        
+
+        if ":" not in item_id:
+            item_id = f"minecraft:{item_id}"
+
         nbt = ""
         if pos < len(tokens) and tokens[pos].value in ("{", "["):
             open_bracket = tokens[pos].value
             close_bracket = "}" if open_bracket == "{" else "]"
             depth = 0
-            
+
             while pos < len(tokens):
                 val = tokens[pos].value
-                # Basic depth counting for NBT/components
                 if val in ("{", "["):
                     depth += 1
                 elif val in ("}", "]"):
                     depth -= 1
-                    
+
                 nbt += val if tokens[pos].type != "STRING" else f"'{val}'"
                 pos += 1
-                
+
                 if depth == 0:
                     break
-                    
+
             if depth > 0:
                 raise CommandSyntaxError("Unbalanced brackets in item components/NBT")
-                
+
         return ItemData(item_id, nbt), pos
 
 

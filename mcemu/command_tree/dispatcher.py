@@ -77,7 +77,6 @@ class CommandDispatcher:
         for child in node.children.values():
             usage = child.get_usage()
             combos.extend(self.get_combinations(child, current_path + " " + usage, depth + 1))
-        # remove duplicates while preserving order
         return list(dict.fromkeys(combos))
 
     def dispatch(self, tokens: List[Token], ctx: ExecutionContext) -> int:
@@ -104,10 +103,9 @@ class CommandDispatcher:
         import difflib
         err_token = tokens[best_fail_pos].value if best_fail_pos < len(tokens) else ""
         paths = self.get_valid_paths(best_fail_node)
-        
+
         did_you_mean = ""
         if paths and err_token != "":
-            # Only suggest literal paths, argument paths like <name: Word> won't match well
             literal_paths = [p for p in paths if not p.startswith("<")]
             matches = difflib.get_close_matches(err_token, literal_paths, n=1, cutoff=0.5)
             if matches:
@@ -130,11 +128,11 @@ class CommandDispatcher:
         else:
             combinations = self.get_combinations(best_fail_node, prev_tokens)
             print(f"{CYAN}Potential command combinations:{RESET}")
-            for combo in combinations[:15]: # Limit to avoid spam
+            for combo in combinations[:15]:
                 print(f"  {GREEN}- {combo}{RESET}")
             if len(combinations) > 15:
                 print(f"  {YELLOW}- ... and {len(combinations) - 15} more{RESET}")
-            
+
             print(f"\n{RED}Error: {prefix}>>{err_token}<< invalid argument{did_you_mean}{RESET}")
 
         return 0
