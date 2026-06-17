@@ -91,11 +91,15 @@ class World:
 
 class ExecutionContext:
     def __init__(self, world: World, executor: Entity = None, position: Tuple[float, float, float] = (0.0, 0.0, 0.0),
-                 emulator=None):
+                 emulator=None, rotation: Tuple[float, float] = (0.0, 0.0), dimension: str = "minecraft:overworld",
+                 anchor: str = "feet"):
         self.world = world
         self.executor = executor
         self.position = position
         self.emulator = emulator
+        self.rotation = rotation
+        self.dimension = dimension
+        self.anchor = anchor
 
     def clone(self):
-        return ExecutionContext(self.world, self.executor, self.position, self.emulator)
+        return ExecutionContext(self.world, self.executor, self.position, self.emulator, self.rotation, self.dimension, self.anchor)

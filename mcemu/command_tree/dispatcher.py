@@ -77,7 +77,8 @@ class CommandDispatcher:
         combos = []
         for child in node.children.values():
             usage = child.get_usage()
-            combos.extend(self.get_combinations(child, current_path + " " + usage, depth + 1))
+            next_path = current_path + (" " + usage if usage else "")
+            combos.extend(self.get_combinations(child, next_path, depth + 1))
         return list(dict.fromkeys(combos))
 
     def dispatch(self, tokens: List[Token], ctx: ExecutionContext) -> int:

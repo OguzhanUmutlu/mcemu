@@ -25,6 +25,45 @@ class IntArgument(ArgumentType):
             raise CommandSyntaxError(f"Expected integer, got '{t.value}'")
 
 
+class IntRangeArgument(ArgumentType):
+    def get_name(self) -> str:
+        return "int_range"
+
+    def parse(self, tokens, pos: int):
+        if pos >= len(tokens):
+            raise CommandSyntaxError("Expected integer range")
+            
+        # Ranges can be parsed as a single token like "10..20" or multiple tokens "10", "..", "20"
+        # We need to gracefully read them.
+        val = ""
+        start_pos = pos
+        while pos < len(tokens):
+            t = tokens[pos]
+            if t.value in ("..", "-") or t.value.isdigit() or (t.value.startswith("-") and t.value[1:].isdigit()):
+                val += t.value
+                pos += 1
+            else:
+                break
+                
+        if not val:
+            raise CommandSyntaxError("Expected integer range")
+
+        min_val = None
+        max_val = None
+        
+        if ".." in val:
+            parts = val.split("..", 1)
+            if parts[0]:
+                min_val = int(parts[0])
+            if parts[1]:
+                max_val = int(parts[1])
+        else:
+            min_val = int(val)
+            max_val = min_val
+            
+        return (min_val, max_val), pos
+
+
 class FloatArgument(ArgumentType):
     def parse(self, tokens, pos: int):
         if pos >= len(tokens):
