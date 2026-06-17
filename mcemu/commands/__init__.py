@@ -6,6 +6,7 @@ from . import clear
 from . import clone
 from . import damage
 from . import data
+from . import datapack
 from . import debug
 from . import defaultgamemode
 from . import deop

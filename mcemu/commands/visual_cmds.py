@@ -11,13 +11,11 @@ def format_text_component(comp) -> str:
         return "".join(format_text_component(c) for c in comp)
     if isinstance(comp, dict):
         text = comp.get("text", "")
-        # Handle colors
         color_map = {"black": "30", "dark_blue": "34", "dark_green": "32", "dark_aqua": "36", "dark_red": "31",
             "dark_purple": "35", "gold": "33", "gray": "37", "dark_gray": "90", "blue": "94", "green": "92",
             "aqua": "96", "red": "91", "light_purple": "95", "yellow": "93", "white": "97"}
         color_code = color_map.get(comp.get("color", ""), "")
 
-        # Handle formats
         formats = []
         if comp.get("bold"): formats.append("1")
         if comp.get("italic"): formats.append("3")
@@ -67,7 +65,7 @@ tr_target.then(tr_msg)
 tellraw_cmd.then(tr_target)
 dispatcher.register(tellraw_cmd)
 
-for name in ["title", "tm", "bossbar", "particle", "playsound", "stopsound", "dialog", "forceload", "datapack", "list",
+for name in ["title", "tm", "bossbar", "particle", "playsound", "stopsound", "dialog", "forceload", "list",
              "transfer", "team", "setidletimeout"]:
     cmd = LiteralNode(name)
     args = ArgumentNode("args", GreedyStringArgument())

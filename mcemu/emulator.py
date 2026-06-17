@@ -8,12 +8,16 @@ from .command_tree.dispatcher import dispatcher
 from .entity import World, Player, ExecutionContext
 from .exceptions import CommandReturn
 from .tokenizer import Tokenizer
+from . import commands
+_ = commands
 
 
 class Emulator:
     def __init__(self, allow_functions: bool = True):
         self.world = World()
         self.allow_functions = allow_functions
+        self.namespace_map = {}
+        self.function_tags = {}
 
         self.dev_player = Player("Dev")
         self.world.add_entity(self.dev_player)
@@ -32,6 +36,102 @@ class Emulator:
                 raise e
             print(f"Error parsing/executing: '{cmd_str}'\n{e}")
         return 0
+
+    def load_datapack(self, pack_path: str) -> int:
+        if not self.allow_functions:
+            print("\033[91m[Security] File system access is disabled. Cannot load datapacks.\033[0m")
+            return 0
+            
+        if not os.path.isdir(pack_path):
+            print(f"Datapack path not found: {pack_path}")
+            return 0
+            
+        mcmeta_path = os.path.join(pack_path, "pack.mcmeta")
+        if not os.path.exists(mcmeta_path):
+            print(f"Invalid datapack (no pack.mcmeta): {pack_path}")
+            return 0
+            
+        data_dir = os.path.join(pack_path, "data")
+        if not os.path.isdir(data_dir):
+            return 1
+
+        for ns in os.listdir(data_dir):
+            ns_dir = os.path.join(data_dir, ns)
+            if os.path.isdir(ns_dir):
+                if ns not in self.namespace_map:
+                    self.namespace_map[ns] = []
+                self.namespace_map[ns].append(ns_dir)
+                
+                tags_dir = os.path.join(ns_dir, "tags", "functions")
+                if os.path.isdir(tags_dir):
+                    for root, _, files in os.walk(tags_dir):
+                        for file in files:
+                            if file.endswith(".json"):
+                                full_path = os.path.join(root, file)
+                                rel_path = os.path.relpath(full_path, tags_dir)
+                                tag_id = f"{ns}:{rel_path[:-5].replace(os.sep, '/')}"
+                                
+                                try:
+                                    with open(full_path, "r") as f:
+                                        tag_data = json.load(f)
+                                        if "values" in tag_data:
+                                            if tag_id not in self.function_tags:
+                                                self.function_tags[tag_id] = []
+                                            self.function_tags[tag_id].extend(tag_data["values"])
+                                except Exception as e:
+                                    print(f"Error parsing tag {full_path}: {e}")
+                                    
+        if "minecraft:load" in self.function_tags:
+            ctx = ExecutionContext(self.world, executor=self.dev_player, position=self.dev_player.pos, emulator=self)
+            self.execute_function("#minecraft:load", ctx)
+            
+        print(f"\033[92mSuccessfully loaded datapack: {os.path.basename(pack_path)}\033[0m")
+        return 1
+
+    def execute_function(self, func_id: str, ctx: ExecutionContext = None, macro_args: dict = None) -> int:
+        if not self.allow_functions:
+            print("\033[91m[Security] File system access is disabled. Cannot run functions.\033[0m")
+            return 0
+            
+        if ctx is None:
+            ctx = ExecutionContext(self.world, executor=self.dev_player, position=self.dev_player.pos, emulator=self)
+
+        if func_id.startswith("#"):
+            tag_name = func_id[1:]
+            if ":" not in tag_name:
+                tag_name = f"minecraft:{tag_name}"
+                
+            if tag_name not in self.function_tags:
+                return 0
+                
+            total_ret = 0
+            for fn in self.function_tags[tag_name]:
+                total_ret += self.execute_function(fn, ctx, macro_args)
+            return total_ret
+            
+        if ":" in func_id:
+            ns, path = func_id.split(":", 1)
+        else:
+            if os.path.exists(func_id) or os.path.exists(func_id + ".mcfunction"):
+                return self.execute_file(func_id, ctx, macro_args)
+            ns, path = "minecraft", func_id
+            
+        if ns not in self.namespace_map:
+            print(f"Unknown namespace: {ns}")
+            return 0
+            
+        target_file = None
+        for base_dir in reversed(self.namespace_map[ns]):
+            potential_path = os.path.join(base_dir, "functions", f"{path}.mcfunction")
+            if os.path.exists(potential_path):
+                target_file = potential_path
+                break
+                
+        if target_file:
+            return self.execute_file(target_file, ctx, macro_args)
+        else:
+            print(f"Function not found: {func_id}")
+            return 0
 
     def execute_file(self, filepath: str, ctx: ExecutionContext = None, macro_args: dict = None) -> int:
         if not self.allow_functions:
@@ -70,7 +170,11 @@ class Emulator:
         self.world.scheduled_tasks = [t for t in self.world.scheduled_tasks if t["tick"] > self.world.current_tick]
 
         for task in tasks_to_run:
-            self.execute_file(task["path"], task["ctx"])
+            self.execute_function(task["path"], task["ctx"])
+            
+        if "minecraft:tick" in self.function_tags:
+            ctx = ExecutionContext(self.world, executor=self.dev_player, position=self.dev_player.pos, emulator=self)
+            self.execute_function("#minecraft:tick", ctx)
 
 
 def start_repl():

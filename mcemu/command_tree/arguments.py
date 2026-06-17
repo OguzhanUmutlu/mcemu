@@ -90,7 +90,6 @@ class NBTArgument(ArgumentType):
             nbt_dict = json.loads(dict_str)
             return nbt_dict, pos
         except Exception:
-            # Fallback if json fails, we can't easily parse complex unquoted NBT strings, just return empty for now
             return {}, pos
 
 
