@@ -1,5 +1,5 @@
 from mcemu.commands.data import _traverse_nbt, NBTPath
-from ..command_tree.arguments import GreedyStringArgument, SelectorArgument, NBTArgument
+from ..command_tree.arguments import GreedyStringArgument, SelectorArgument, NBTArgument, ComponentArgument
 from ..command_tree.dispatcher import dispatcher
 from ..command_tree.nodes import LiteralNode, ArgumentNode
 from ..context import ExecutionContext, get_entities_from_target_strings
@@ -81,7 +81,7 @@ for name in ["say", "tell", "msg", "w", "me", "teammsg"]:
 
 tellraw_cmd = LiteralNode("tellraw")
 tr_target = ArgumentNode("target", SelectorArgument())
-tr_msg = ArgumentNode("message", NBTArgument())
+tr_msg = ArgumentNode("message", ComponentArgument())
 tr_msg.executes(exec_tellraw)
 tr_target.then(tr_msg)
 tellraw_cmd.then(tr_target)

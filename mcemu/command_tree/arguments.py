@@ -131,6 +131,27 @@ class NBTArgument(ArgumentType):
             return {} if nbt_str.startswith("{") else [], pos
 
 
+class ComponentArgument(ArgumentType):
+    def get_name(self) -> str:
+        return "component"
+
+    def parse(self, tokens, pos: int):
+        if pos >= len(tokens):
+            raise CommandSyntaxError("Expected JSON component")
+
+        val = tokens[pos].value
+        if val in ("{", "["):
+            return NBTArgument().parse(tokens, pos)
+        elif tokens[pos].type == "STRING":
+            return tokens[pos].value, pos + 1
+        elif val.isdigit() or (val.startswith("-") and val[1:].isdigit()):
+            return val, pos + 1
+        elif val.lower() in ("true", "false"):
+            return val.lower() == "true", pos + 1
+        else:
+            raise CommandSyntaxError("Expected JSON text component")
+
+
 class PathArgument(ArgumentType):
     def parse(self, tokens, pos: int):
         if pos >= len(tokens):
@@ -236,26 +257,33 @@ class PseudoSelectorArgument(ArgumentType):
             pos += 1
             args = {}
             if pos < len(tokens) and tokens[pos].value == "[":
-                pos += 1
-                while pos < len(tokens) and tokens[pos].value != "]":
-                    key_val, pos = WordArgument().parse(tokens, pos)
-                    if pos >= len(tokens) or tokens[pos].value != "=":
-                        raise CommandSyntaxError("Expected '=' in selector")
+                is_selector_args = False
+                if pos + 1 < len(tokens) and tokens[pos+1].value == "]":
+                    is_selector_args = True
+                elif pos + 2 < len(tokens) and tokens[pos+2].value == "=":
+                    is_selector_args = True
+
+                if is_selector_args:
                     pos += 1
-                    val, pos = WordArgument().parse(tokens, pos)
-
-                    if key_val == "type":
-                        if val.startswith("!") and ":" not in val:
-                            val = f"!minecraft:{val[1:]}"
-                        elif not val.startswith("!") and ":" not in val:
-                            val = f"minecraft:{val}"
-
-                    args[key_val] = val
-                    if pos < len(tokens) and tokens[pos].value == ",":
+                    while pos < len(tokens) and tokens[pos].value != "]":
+                        key_val, pos = WordArgument().parse(tokens, pos)
+                        if pos >= len(tokens) or tokens[pos].value != "=":
+                            raise CommandSyntaxError("Expected '=' in selector")
                         pos += 1
-                if pos >= len(tokens) or tokens[pos].value != "]":
-                    raise CommandSyntaxError("Expected ']'")
-                pos += 1
+                        val, pos = WordArgument().parse(tokens, pos)
+
+                        if key_val == "type":
+                            if val.startswith("!") and ":" not in val:
+                                val = f"!minecraft:{val[1:]}"
+                            elif not val.startswith("!") and ":" not in val:
+                                val = f"minecraft:{val}"
+
+                        args[key_val] = val
+                        if pos < len(tokens) and tokens[pos].value == ",":
+                            pos += 1
+                    if pos >= len(tokens) or tokens[pos].value != "]":
+                        raise CommandSyntaxError("Expected ']'")
+                    pos += 1
             return TargetSelectorData(base, args, is_pseudo=False), pos
         else:
             val, pos = WordArgument().parse(tokens, pos)
