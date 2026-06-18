@@ -87,7 +87,11 @@ class World:
             raise RuntimeError(f"Objective '{objective}' does not exist")
         if objective not in self.scoreboards:
             self.scoreboards[objective] = {}
-        self.scoreboards[objective][target_str] = value
+
+        val = int(value)
+        val = (val + (1 << 31)) % (1 << 32) - (1 << 31)
+        self.scoreboards[objective][target_str] = val
+        return val
 
 
 class ExecutionContext:

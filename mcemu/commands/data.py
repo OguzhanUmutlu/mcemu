@@ -3,11 +3,47 @@ import json
 import re
 from typing import Any, List, Tuple
 
-from ..command_tree.arguments import WordArgument, BlockPosArgument, SelectorArgument, \
-    NBTArgument, IntArgument, FloatArgument, PathArgument, ArgumentType, CommandSyntaxError
+from ..command_tree.arguments import WordArgument, BlockPosArgument, SelectorArgument, NBTArgument, IntArgument, \
+    FloatArgument, PathArgument, ArgumentType, CommandSyntaxError
 from ..command_tree.builder import literal, argument
 from ..command_tree.dispatcher import dispatcher
 from ..context import ExecutionContext, resolve_target_selector, get_entities_from_target_strings
+
+
+class NBTByte(int):
+    def __str__(self): return f"{int(self)}b"
+
+    def __repr__(self): return f"{int(self)}b"
+
+
+class NBTShort(int):
+    def __str__(self): return f"{int(self)}s"
+
+    def __repr__(self): return f"{int(self)}s"
+
+
+class NBTInt(int):
+    def __str__(self): return str(int(self))
+
+    def __repr__(self): return str(int(self))
+
+
+class NBTLong(int):
+    def __str__(self): return f"{int(self)}l"
+
+    def __repr__(self): return f"{int(self)}l"
+
+
+class NBTFloat(float):
+    def __str__(self): return f"{float(self)}f"
+
+    def __repr__(self): return f"{float(self)}f"
+
+
+class NBTDouble(float):
+    def __str__(self): return f"{float(self)}d"
+
+    def __repr__(self): return f"{float(self)}d"
 
 
 class DataValueArgument(ArgumentType):
@@ -30,15 +66,23 @@ class DataValueArgument(ArgumentType):
         val_str = val_str.strip()
         parsed = val_str
         if val_str.lower() in ("true", "1b"):
-            parsed = True
+            parsed = NBTByte(1)
         elif val_str.lower() in ("false", "0b"):
-            parsed = False
+            parsed = NBTByte(0)
         else:
             try:
-                if "." in val_str or "f" in val_str.lower() or "d" in val_str.lower():
-                    parsed = float(val_str.rstrip("fdFD"))
+                if "f" in val_str.lower():
+                    parsed = NBTFloat(float(val_str.rstrip("fdFD")))
+                elif "d" in val_str.lower() or "." in val_str:
+                    parsed = NBTDouble(float(val_str.rstrip("fdFD")))
+                elif "b" in val_str.lower():
+                    parsed = NBTByte(int(val_str.rstrip("bBsSlL")))
+                elif "s" in val_str.lower():
+                    parsed = NBTShort(int(val_str.rstrip("bBsSlL")))
+                elif "l" in val_str.lower():
+                    parsed = NBTLong(int(val_str.rstrip("bBsSlL")))
                 else:
-                    parsed = int(val_str.rstrip("bBsSlL"))
+                    parsed = NBTInt(int(val_str.rstrip("bBsSlL")))
             except:
                 pass
 
@@ -135,13 +179,21 @@ def _parse_nbt_value(val_str: str) -> Any:
         return json.loads(val_str)
     except:
         pass
-    if val_str.lower() in ("true", "1b"): return True
-    if val_str.lower() in ("false", "0b"): return False
+    if val_str.lower() in ("true", "1b"): return NBTByte(1)
+    if val_str.lower() in ("false", "0b"): return NBTByte(0)
     try:
-        if "." in val_str or "f" in val_str.lower() or "d" in val_str.lower():
-            return float(val_str.rstrip("fdFD"))
+        if "f" in val_str.lower():
+            return NBTFloat(float(val_str.rstrip("fdFD")))
+        elif "d" in val_str.lower() or "." in val_str:
+            return NBTDouble(float(val_str.rstrip("fdFD")))
+        elif "b" in val_str.lower():
+            return NBTByte(int(val_str.rstrip("bBsSlL")))
+        elif "s" in val_str.lower():
+            return NBTShort(int(val_str.rstrip("bBsSlL")))
+        elif "l" in val_str.lower():
+            return NBTLong(int(val_str.rstrip("bBsSlL")))
         else:
-            return int(val_str.rstrip("bBsSlL"))
+            return NBTInt(int(val_str.rstrip("bBsSlL")))
     except:
         return val_str
 
@@ -215,7 +267,7 @@ def data_modify(ctx: ExecutionContext, target_type: str, modify_op: str, source_
         src_target_type = kwargs.get("source_target_type")
         src_dicts = _get_target_dicts(ctx, src_target_type,
                                       {"pos": kwargs.get("source_pos"), "target": kwargs.get("source_target"),
-                                          "id": kwargs.get("source_id")})
+                                       "id": kwargs.get("source_id")})
         if src_dicts:
             src_path_str = kwargs.get("source_path")
             if src_path_str:

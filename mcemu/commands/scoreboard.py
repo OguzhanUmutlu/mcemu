@@ -20,8 +20,7 @@ def scoreboard_objectives_remove(ctx: ExecutionContext, objective: str, **kwargs
 def scoreboard_players_set(ctx: ExecutionContext, target: list, objective: str, value: int, **kwargs):
     res = 0
     for t in target:
-        ctx.world.set_score(t, objective, value)
-        res = value
+        res = ctx.world.set_score(t, objective, value)
     return res
 
 
@@ -29,8 +28,7 @@ def scoreboard_players_add(ctx: ExecutionContext, target: list, objective: str, 
     res = 0
     for t in target:
         val = ctx.world.get_score(t, objective) + value
-        ctx.world.set_score(t, objective, val)
-        res = val
+        res = ctx.world.set_score(t, objective, val)
     return res
 
 
@@ -38,8 +36,7 @@ def scoreboard_players_remove(ctx: ExecutionContext, target: list, objective: st
     res = 0
     for t in target:
         val = ctx.world.get_score(t, objective) - value
-        ctx.world.set_score(t, objective, val)
-        res = val
+        res = ctx.world.set_score(t, objective, val)
     return res
 
 
@@ -85,8 +82,7 @@ def scoreboard_players_operation(ctx: ExecutionContext, target: list, objective:
             ctx.world.set_score(source[0], source_obj, val)
             val = src_val
 
-        ctx.world.set_score(t, objective, int(val))
-        res = int(val)
+        res = ctx.world.set_score(t, objective, int(val))
     return res
 
 
