@@ -32,7 +32,7 @@ class IntRangeArgument(ArgumentType):
     def parse(self, tokens, pos: int):
         if pos >= len(tokens):
             raise CommandSyntaxError("Expected integer range")
-            
+
         val = ""
         start_pos = pos
         while pos < len(tokens):
@@ -42,13 +42,13 @@ class IntRangeArgument(ArgumentType):
                 pos += 1
             else:
                 break
-                
+
         if not val:
             raise CommandSyntaxError("Expected integer range")
 
         min_val = None
         max_val = None
-        
+
         if ".." in val:
             parts = val.split("..", 1)
             if parts[0]:
@@ -58,7 +58,7 @@ class IntRangeArgument(ArgumentType):
         else:
             min_val = int(val)
             max_val = min_val
-            
+
         return (min_val, max_val), pos
 
 
@@ -101,15 +101,15 @@ class NBTArgument(ArgumentType):
             raise CommandSyntaxError("Expected NBT")
 
         nbt_str = ""
-        if tokens[pos].value != "{":
-            raise CommandSyntaxError("Expected '{' for NBT compound")
+        if tokens[pos].value not in ("{", "["):
+            raise CommandSyntaxError("Expected '{' or '[' for NBT compound/array")
 
         depth = 0
         while pos < len(tokens):
             val = tokens[pos].value
-            if val == "{":
+            if val in ("{", "["):
                 depth += 1
-            elif val == "}":
+            elif val in ("}", "]"):
                 depth -= 1
 
             nbt_str += val if tokens[pos].type != "STRING" else f'"{val}"'
@@ -119,15 +119,16 @@ class NBTArgument(ArgumentType):
                 break
 
         if depth > 0:
-            raise CommandSyntaxError("Unbalanced braces in NBT")
+            raise CommandSyntaxError("Unbalanced braces/brackets in NBT")
 
         dict_str = nbt_str
-        dict_str = re.sub(r'([a-zA-Z0-9_]+)\s*:', r'"\1":', dict_str)
+        dict_str = re.sub(r'(?<!["\'\w])([a-zA-Z0-9_]+)\s*:', r'"\1":', dict_str)
+        dict_str = re.sub(r'\[\s*[a-zA-Z]\s*;\s*', '[', dict_str)
         try:
             nbt_dict = json.loads(dict_str)
             return nbt_dict, pos
         except Exception:
-            return {}, pos
+            return {} if nbt_str.startswith("{") else [], pos
 
 
 class PathArgument(ArgumentType):
@@ -142,10 +143,14 @@ class PathArgument(ArgumentType):
 
         while pos < len(tokens):
             t = tokens[pos]
-            if t.value in ("/", "-", "_", ":", ".", "\\"):
+            if t.value in ("/", "-", "_", ":", ".", "\\", "[", "]", '"', "'"):
                 val += t.value
                 pos += 1
                 if pos < len(tokens) and tokens[pos].type == "WORD":
+                    val += tokens[pos].value
+                    pos += 1
+                elif pos < len(tokens) and tokens[pos].type == "STRING":
+                    quote = '"' if t.value == '"' else "'" if t.value == "'" else ""
                     val += tokens[pos].value
                     pos += 1
             else:

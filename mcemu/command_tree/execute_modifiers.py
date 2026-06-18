@@ -1,8 +1,14 @@
 from typing import List
 
-from ..commands.data import set_nested_dict
-from ..context import ExecutionContext
 from .arguments import TargetSelectorData
+from ..context import ExecutionContext
+
+
+def set_nested_dict(d: dict, path: str, value: any):
+    keys = path.split(".")
+    for key in keys[:-1]:
+        d = d.setdefault(key, {})
+    d[keys[-1]] = value
 
 
 class ExecuteModifier:
@@ -86,11 +92,8 @@ class ExecutePositionedModifier(ExecuteModifier):
         pos = args.get("pos")
         if pos:
             new_ctx = ctx.clone()
-            new_ctx.position = (
-                pos[0].resolve(ctx.position[0]),
-                pos[1].resolve(ctx.position[1]),
-                pos[2].resolve(ctx.position[2])
-            )
+            new_ctx.position = (pos[0].resolve(ctx.position[0]), pos[1].resolve(ctx.position[1]),
+                                pos[2].resolve(ctx.position[2]))
             return [new_ctx]
         return [ctx]
 
@@ -154,10 +157,7 @@ class ExecuteRotatedModifier(ExecuteModifier):
         pitch_arg = args.get("pitch")
         if yaw_arg and pitch_arg:
             new_ctx = ctx.clone()
-            new_ctx.rotation = (
-                yaw_arg.resolve(ctx.rotation[0]),
-                pitch_arg.resolve(ctx.rotation[1])
-            )
+            new_ctx.rotation = (yaw_arg.resolve(ctx.rotation[0]), pitch_arg.resolve(ctx.rotation[1]))
             return [new_ctx]
         return [ctx]
 
@@ -276,7 +276,7 @@ class ExecuteIfScoreModifier(ExecuteModifier):
         op = args.get("op")
         source = args.get("source")
         source_obj = args.get("source_obj")
-        
+
         if not target or not source:
             return [] if not self.invert else [ctx]
 
@@ -286,17 +286,23 @@ class ExecuteIfScoreModifier(ExecuteModifier):
         try:
             val1 = ctx.world.get_score(target_str, target_obj)
             val2 = ctx.world.get_score(source_str, source_obj)
-            
-            if op == "<": condition = val1 < val2
-            elif op == "<=": condition = val1 <= val2
-            elif op == "=": condition = val1 == val2
-            elif op == ">=": condition = val1 >= val2
-            elif op == ">": condition = val1 > val2
-            else: return [] if not self.invert else [ctx]
-            
+
+            if op == "<":
+                condition = val1 < val2
+            elif op == "<=":
+                condition = val1 <= val2
+            elif op == "=":
+                condition = val1 == val2
+            elif op == ">=":
+                condition = val1 >= val2
+            elif op == ">":
+                condition = val1 > val2
+            else:
+                return [] if not self.invert else [ctx]
+
             if self.invert:
                 condition = not condition
-                
+
             return [ctx] if condition else []
         except Exception:
             return [] if not self.invert else [ctx]
@@ -310,12 +316,12 @@ class ExecuteIfScoreMatchesModifier(ExecuteModifier):
         target = args.get("target")
         target_obj = args.get("target_obj")
         range_val = args.get("range")
-        
+
         if not target:
             return [] if not self.invert else [ctx]
 
         target_str = target.base if isinstance(target, TargetSelectorData) else target[0] if target else ""
-        
+
         try:
             val = ctx.world.get_score(target_str, target_obj)
         except RuntimeError:

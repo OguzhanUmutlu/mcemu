@@ -49,6 +49,7 @@ class World:
         self.scheduled_tasks: List[Dict[str, Any]] = []
 
         self.blocks: Dict[Tuple[int, int, int], str] = {}
+        self.block_nbt: Dict[Tuple[int, int, int], Dict[str, Any]] = {}
         self.track_blocks = False
 
         self.time: int = 0
@@ -102,4 +103,5 @@ class ExecutionContext:
         self.anchor = anchor
 
     def clone(self):
-        return ExecutionContext(self.world, self.executor, self.position, self.emulator, self.rotation, self.dimension, self.anchor)
+        return ExecutionContext(self.world, self.executor, self.position, self.emulator, self.rotation, self.dimension,
+                                self.anchor)
