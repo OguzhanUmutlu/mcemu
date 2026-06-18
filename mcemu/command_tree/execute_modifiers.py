@@ -56,6 +56,8 @@ class ExecuteStoreScoreModifier(ExecuteModifier):
             ctx.world.set_score(t, objective, int(result))
 
 
+from ..commands.data import _traverse_nbt, NBTPath
+
 class ExecuteStoreResultModifier(ExecuteModifier):
     def modify(self, ctx: ExecutionContext, args: dict) -> List[ExecutionContext]:
         return [ctx]
@@ -77,10 +79,20 @@ class ExecuteStoreResultModifier(ExecuteModifier):
             scaled_res = int(scaled_res) & 0xFF
 
         for t in targets:
-            target_key = f"{store_type}:{t}"
-            if target_key not in ctx.world.nbt_storage:
-                ctx.world.nbt_storage[target_key] = {}
-            set_nested_dict(ctx.world.nbt_storage[target_key], path, scaled_res)
+            if store_type == "storage":
+                target_dict = ctx.world.nbt_storage.setdefault(t, {})
+            elif store_type == "entity":
+                entity = next((e for e in ctx.world.entities if str(e.uuid) == str(t) or e.name == t), None)
+                target_dict = entity.nbt if entity else None
+            else:
+                target_key = f"{store_type}:{t}"
+                target_dict = ctx.world.nbt_storage.setdefault(target_key, {})
+
+            if target_dict is not None:
+                parent, last_key, _ = _traverse_nbt(target_dict, NBTPath(path), create_missing=True)
+                if parent is not None and last_key is not None:
+                    parent[last_key] = scaled_res
+
 
 
 import math
