@@ -1,3 +1,4 @@
+import copy
 import json
 import re
 from typing import Any, List, Tuple
@@ -224,6 +225,8 @@ def data_modify(ctx: ExecutionContext, target_type: str, modify_op: str, source_
 
     if source_val is None:
         return 0
+
+    source_val = copy.deepcopy(source_val)
 
     res = 0
     for d in dicts:
