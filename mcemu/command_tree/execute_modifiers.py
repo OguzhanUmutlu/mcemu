@@ -1,7 +1,9 @@
+import math
 from typing import List
 
 from .arguments import TargetSelectorData
 from ..context import ExecutionContext
+from ..entity import Entity
 
 
 def set_nested_dict(d: dict, path: str, value: any):
@@ -58,6 +60,7 @@ class ExecuteStoreScoreModifier(ExecuteModifier):
 
 from ..commands.data import _traverse_nbt, NBTPath
 
+
 class ExecuteStoreResultModifier(ExecuteModifier):
     def modify(self, ctx: ExecutionContext, args: dict) -> List[ExecutionContext]:
         return [ctx]
@@ -94,11 +97,6 @@ class ExecuteStoreResultModifier(ExecuteModifier):
                     parent[last_key] = scaled_res
 
 
-
-import math
-from ..entity import Entity
-
-
 class ExecutePositionedModifier(ExecuteModifier):
     def modify(self, ctx: ExecutionContext, args: dict) -> List[ExecutionContext]:
         pos = args.get("pos")
@@ -131,8 +129,12 @@ class ExecuteFacingModifier(ExecuteModifier):
             target_y = pos[1].resolve(ctx.position[1])
             target_z = pos[2].resolve(ctx.position[2])
 
+            ctx_y = ctx.position[1]
+            if ctx.anchor == "eyes":
+                ctx_y += 1.62
+
             dx = target_x - ctx.position[0]
-            dy = target_y - ctx.position[1]
+            dy = target_y - ctx_y
             dz = target_z - ctx.position[2]
 
             yaw = math.degrees(math.atan2(-dx, dz))
@@ -147,12 +149,21 @@ class ExecuteFacingModifier(ExecuteModifier):
 class ExecuteFacingEntityModifier(ExecuteModifier):
     def modify(self, ctx: ExecutionContext, args: dict) -> List[ExecutionContext]:
         targets = args.get("target", [])
+        anchor = args.get("anchor", "feet")
         contexts = []
         for t in targets:
             entity = next((e for e in ctx.world.entities if e.uuid == t or e.name == t), None)
             if entity:
+                ctx_y = ctx.position[1]
+                if ctx.anchor == "eyes":
+                    ctx_y += 1.62
+
+                target_y = entity.pos[1]
+                if anchor == "eyes":
+                    target_y += 1.62
+
                 dx = entity.pos[0] - ctx.position[0]
-                dy = entity.pos[1] - ctx.position[1]
+                dy = target_y - ctx_y
                 dz = entity.pos[2] - ctx.position[2]
                 yaw = math.degrees(math.atan2(-dx, dz))
                 pitch = math.degrees(-math.atan2(dy, math.sqrt(dx * dx + dz * dz)))
