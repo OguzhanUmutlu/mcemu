@@ -54,14 +54,17 @@ def format_text_component(comp, ctx: ExecutionContext = None) -> str:
 
 
 def exec_print(ctx: ExecutionContext, message: str) -> int:
-    print(f"\033[95m[Chat] {message}\033[0m")
+    name = "Server"
+    if ctx.executor:
+        name = ctx.executor.name if ctx.executor.name else ctx.executor.uuid
+    print(f"\033[95m[{name}] {message}\033[0m")
     return 1
 
 
 def exec_tellraw(ctx: ExecutionContext, target: list, message: dict) -> int:
     entities = get_entities_from_target_strings(ctx, target)
     formatted = format_text_component(message, ctx)
-    print(f"\033[95m[Chat] {formatted}\033[0m")
+    print(formatted)
     return len(entities)
 
 

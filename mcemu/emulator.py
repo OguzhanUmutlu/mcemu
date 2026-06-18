@@ -19,8 +19,8 @@ class Emulator:
         self.namespace_map = {}
         self.function_tags = {}
 
-        self.dev_player = Player("Dev")
-        self.world.add_entity(self.dev_player)
+        self.default_player = Player("Player")
+        self.world.add_entity(self.default_player)
 
     def execute_command(self, cmd_str: str, ctx: ExecutionContext = None) -> int:
         if not cmd_str.strip() or cmd_str.strip().startswith("#"):
@@ -28,8 +28,7 @@ class Emulator:
         tokens = Tokenizer(cmd_str).tokenize()
         try:
             if ctx is None:
-                ctx = ExecutionContext(self.world, executor=self.dev_player, position=self.dev_player.pos,
-                                       emulator=self)
+                ctx = ExecutionContext(self.world, executor=None, position=(0.0, 0.0, 0.0), emulator=self)
             return dispatcher.dispatch(tokens, ctx)
         except Exception as e:
             if isinstance(e, CommandReturn):
@@ -82,7 +81,7 @@ class Emulator:
                                     print(f"Error parsing tag {full_path}: {e}")
                                     
         if "minecraft:load" in self.function_tags:
-            ctx = ExecutionContext(self.world, executor=self.dev_player, position=self.dev_player.pos, emulator=self)
+            ctx = ExecutionContext(self.world, executor=None, position=(0.0, 0.0, 0.0), emulator=self)
             self.execute_function("#minecraft:load", ctx)
             
         print(f"\033[92mSuccessfully loaded datapack: {os.path.basename(pack_path)}\033[0m")
@@ -94,7 +93,7 @@ class Emulator:
             return 0
             
         if ctx is None:
-            ctx = ExecutionContext(self.world, executor=self.dev_player, position=self.dev_player.pos, emulator=self)
+            ctx = ExecutionContext(self.world, executor=None, position=(0.0, 0.0, 0.0), emulator=self)
 
         if func_id.startswith("#"):
             tag_name = func_id[1:]
@@ -145,7 +144,7 @@ class Emulator:
                 return 0
 
         if ctx is None:
-            ctx = ExecutionContext(self.world, executor=self.dev_player, position=self.dev_player.pos, emulator=self)
+            ctx = ExecutionContext(self.world, executor=None, position=(0.0, 0.0, 0.0), emulator=self)
 
         try:
             with open(filepath, "r") as f:
@@ -173,7 +172,7 @@ class Emulator:
             self.execute_function(task["path"], task["ctx"])
             
         if "minecraft:tick" in self.function_tags:
-            ctx = ExecutionContext(self.world, executor=self.dev_player, position=self.dev_player.pos, emulator=self)
+            ctx = ExecutionContext(self.world, executor=None, position=(0.0, 0.0, 0.0), emulator=self)
             self.execute_function("#minecraft:tick", ctx)
 
 
@@ -221,8 +220,8 @@ def start_repl():
                 continue
             elif cmd.strip().lower() == "reset":
                 emu.world = World()
-                emu.dev_player = Player("Dev")
-                emu.world.add_entity(emu.dev_player)
+                emu.default_player = Player("Player")
+                emu.world.add_entity(emu.default_player)
                 print("\033[92mWorld reset successfully.\033[0m")
                 continue
             elif cmd.strip().lower() == "toggleblocks":
