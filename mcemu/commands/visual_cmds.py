@@ -21,7 +21,7 @@ def format_text_component(comp, ctx: ExecutionContext = None) -> str:
         if "nbt" in comp and ctx:
             path = comp["nbt"]
             if "storage" in comp:
-                target_key = f"storage:{comp['storage']}"
+                target_key = comp['storage']
                 d = ctx.world.nbt_storage.get(target_key, {})
                 parent, last_key, val = _traverse_nbt(d, NBTPath(path))
                 if val is not None:
