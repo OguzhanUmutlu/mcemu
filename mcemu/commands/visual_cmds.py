@@ -1,3 +1,4 @@
+from mcemu.commands.data import _traverse_nbt, NBTPath
 from ..command_tree.arguments import GreedyStringArgument, SelectorArgument, NBTArgument
 from ..command_tree.dispatcher import dispatcher
 from ..command_tree.nodes import LiteralNode, ArgumentNode
@@ -22,14 +23,8 @@ def format_text_component(comp, ctx: ExecutionContext = None) -> str:
             if "storage" in comp:
                 target_key = f"storage:{comp['storage']}"
                 d = ctx.world.nbt_storage.get(target_key, {})
-                from mcemu.commands.data import get_nested_dict
-                if path.endswith("[0]"):
-                    base_path = path[:-3]
-                    arr = get_nested_dict(d, base_path) if base_path else d
-                    if isinstance(arr, list) and len(arr) > 0:
-                        text += str(arr[0])
-                else:
-                    val = get_nested_dict(d, path) if path and path != "{}" else d
+                parent, last_key, val = _traverse_nbt(d, NBTPath(path))
+                if val is not None:
                     text += str(val)
 
         if "extra" in comp:
