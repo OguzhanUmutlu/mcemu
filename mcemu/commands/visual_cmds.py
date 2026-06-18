@@ -15,8 +15,11 @@ def format_text_component(comp, ctx: ExecutionContext = None) -> str:
 
         if "score" in comp and ctx:
             score_data = comp["score"]
-            val = ctx.world.scoreboards.get_score(score_data.get("name", ""), score_data.get("objective", ""))
-            text += str(val) if val is not None else ""
+            try:
+                val = ctx.world.get_score(score_data.get("name", ""), score_data.get("objective", ""))
+                text += str(val) if val is not None else ""
+            except RuntimeError:
+                pass
 
         if "nbt" in comp and ctx:
             path = comp["nbt"]
