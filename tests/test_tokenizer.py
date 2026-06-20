@@ -39,9 +39,9 @@ def test_tokenizer_operators():
 def test_tokenizer_punctuation():
     tokenizer = Tokenizer("[,] {:} !@")
     tokens = tokenizer.tokenize()
-    assert len(tokens) == 8
-    expected = ["[", ",", "]", "{", ":", "}", "!", "@"]
+    assert len(tokens) == 7
+    expected = ["[", ",", "]", "{", ":", "}", "!@"]
     for i, exp in enumerate(expected):
-        expected_type = "WORD" if exp == "!" else "PUNCT"
+        expected_type = "WORD" if exp == "!@" else "PUNCT"
         assert tokens[i].type == expected_type
         assert tokens[i].value == exp

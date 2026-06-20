@@ -249,12 +249,16 @@ class PseudoSelectorArgument(ArgumentType):
             raise CommandSyntaxError("Expected target selector or name")
 
         t = tokens[pos]
-        if t.value == "@":
-            pos += 1
-            if pos >= len(tokens):
-                raise CommandSyntaxError("Incomplete target selector")
-            base = tokens[pos].value
-            pos += 1
+        if t.value.startswith("@"):
+            if len(t.value) == 1:
+                pos += 1
+                if pos >= len(tokens):
+                    raise CommandSyntaxError("Incomplete target selector")
+                base = tokens[pos].value
+                pos += 1
+            else:
+                base = t.value[1:]
+                pos += 1
             args = {}
             if pos < len(tokens) and tokens[pos].value == "[":
                 is_selector_args = False
