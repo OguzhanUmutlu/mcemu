@@ -1,4 +1,4 @@
-from ..command_tree.arguments import SelectorArgument, ObjectiveArgument, WordArgument, FloatArgument, BlockPosArgument, BlockStateArgument, CoordinateArgument, IntRangeArgument
+from ..command_tree.arguments import SelectorArgument, ObjectiveArgument, WordArgument, FloatArgument, BlockPosArgument, BlockStateArgument, CoordinateArgument, IntRangeArgument, PathArgument
 from ..command_tree.builder import literal, argument
 from ..command_tree.dispatcher import dispatcher
 from ..command_tree.execute_modifiers import *
@@ -24,7 +24,7 @@ execute_store_score = literal("score").then(argument("store_target", SelectorArg
     argument("store_objective", ObjectiveArgument()).forks(execute_subcommand, ExecuteStoreScoreModifier())))
 
 execute_store_result_type = argument("store_type", WordArgument()).then(
-    argument("store_target", SelectorArgument()).then(argument("store_path", WordArgument()).then(
+    argument("store_target", SelectorArgument()).then(argument("store_path", PathArgument()).then(
         argument("store_datatype", WordArgument()).then(
             argument("store_multiplier", FloatArgument()).forks(execute_subcommand, ExecuteStoreResultModifier())))))
 
@@ -93,7 +93,7 @@ for condition_mode in ["if", "unless"]:
     # data
     condition_node.then(
         literal("data").then(argument("data_type", WordArgument()).then(argument("source", WordArgument()).then(
-            argument("path", WordArgument()).forks(execute_subcommand, ExecuteIfDataModifier(invert))
+            argument("path", PathArgument()).forks(execute_subcommand, ExecuteIfDataModifier(invert))
         )))
     )
     # entity
