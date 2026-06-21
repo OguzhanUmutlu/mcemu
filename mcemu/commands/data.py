@@ -1,6 +1,5 @@
 import copy
 import json
-import re
 from typing import Any, List, Tuple
 
 from ..command_tree.arguments import WordArgument, BlockPosArgument, SelectorArgument, NBTArgument, IntArgument, \
@@ -55,12 +54,12 @@ class DataValueArgument(ArgumentType):
         if val in ("{", "["):
             return NBTArgument().parse(tokens, pos)
 
+        if tokens[pos].type == "STRING":
+            return tokens[pos].value, pos + 1
+
         val_str = ""
         while pos < len(tokens):
-            if tokens[pos].type == "STRING":
-                val_str += f'"{tokens[pos].value}" '
-            else:
-                val_str += tokens[pos].value + " "
+            val_str += tokens[pos].value + " "
             pos += 1
 
         val_str = val_str.strip()
@@ -96,22 +95,55 @@ class NBTPath:
         self._parse()
 
     def _parse(self):
-        parts = self.raw_path.split(".")
-        for part in parts:
-            if not part:
-                continue
-            m = re.match(r"^([^\[]+)(?:\[(.*?)\])?$", part)
-            if m:
-                key = m.group(1)
-                idx = m.group(2)
+        """Tokenize an NBT path properly, respecting bracket depth so that
+        dots inside JSON dict-filter expressions are never treated as
+        path separators.
+        """
+        s = self.raw_path
+        i = 0
+        n = len(s)
+
+        while i < n:
+            key_start = i
+            depth = 0
+            while i < n and not (s[i] == '.' and depth == 0) and not (s[i] == '[' and depth == 0):
+                if s[i] in ('{', '['):
+                    depth += 1
+                elif s[i] in ('}', ']'):
+                    depth -= 1
+                i += 1
+            key = s[key_start:i]
+            if key:
                 self.segments.append(key)
-                if idx is not None:
-                    try:
-                        self.segments.append(int(idx))
-                    except ValueError:
-                        self.segments.append(f"[{idx}]")
-            else:
-                self.segments.append(part)
+
+            if i < n and s[i] == '.':
+                i += 1
+                continue
+
+            while i < n and s[i] == '[':
+                i += 1
+                depth = 1
+                start = i
+                while i < n and depth > 0:
+                    if s[i] == '[':
+                        depth += 1
+                    elif s[i] == ']':
+                        depth -= 1
+                    i += 1
+                inner = s[start:i - 1]
+                try:
+                    self.segments.append(int(inner))
+                except ValueError:
+                    if inner == '':
+                        self.segments.append(None)
+                    else:
+                        try:
+                            self.segments.append(json.loads(inner))
+                        except Exception:
+                            self.segments.append(f'[{inner}]')
+
+            if i < n and s[i] == '.':
+                i += 1
 
 
 def _get_target_dicts(ctx: ExecutionContext, target_type: str, args: dict) -> List[dict]:
@@ -133,6 +165,20 @@ def _get_target_dicts(ctx: ExecutionContext, target_type: str, args: dict) -> Li
     return []
 
 
+def _match_filter(item, filt):
+    """Return True if item matches the dict filter."""
+    if filt is None:
+        return True
+    if isinstance(filt, dict):
+        if not isinstance(item, dict):
+            return False
+        for k, v in filt.items():
+            if item.get(k) != v:
+                return False
+        return True
+    return False
+
+
 def _traverse_nbt(nbt_dict: dict, path: NBTPath, create_missing: bool = False) -> Tuple[Any, Any, Any]:
     current = nbt_dict
     parent = None
@@ -143,31 +189,42 @@ def _traverse_nbt(nbt_dict: dict, path: NBTPath, create_missing: bool = False) -
         last_key = seg
 
         if isinstance(current, dict):
+            if isinstance(seg, (int, dict)) or seg is None:
+                return None, None, None
             if seg not in current:
                 if not create_missing:
                     return None, None, None
-                if i + 1 < len(path.segments) and isinstance(path.segments[i + 1], int):
-                    current[seg] = []
-                else:
-                    current[seg] = {}
+                next_seg = path.segments[i + 1] if i + 1 < len(path.segments) else None
+                current[seg] = [] if isinstance(next_seg, int) else {}
             current = current[seg]
+
         elif isinstance(current, list):
-            if not isinstance(seg, int):
-                return None, None, None
-            if seg < 0:
-                seg = len(current) + seg
-            if seg < 0 or seg >= len(current):
-                if not create_missing:
-                    return None, None, None
-                if seg == len(current):
-                    if i + 1 < len(path.segments) and isinstance(path.segments[i + 1], int):
-                        current.append([])
+            if isinstance(seg, int):
+                idx = seg
+                if idx < 0:
+                    idx = len(current) + idx
+                if idx < 0 or idx >= len(current):
+                    if not create_missing:
+                        return None, None, None
+                    if idx == len(current):
+                        next_seg = path.segments[i + 1] if i + 1 < len(path.segments) else None
+                        current.append([] if isinstance(next_seg, int) else {})
                     else:
-                        current.append({})
-                else:
+                        return None, None, None
+                current = current[idx]
+                last_key = idx
+            elif isinstance(seg, dict) or seg is None:
+                match_idx = None
+                for j, item in enumerate(current):
+                    if _match_filter(item, seg):
+                        match_idx = j
+                        break
+                if match_idx is None:
                     return None, None, None
-            current = current[seg]
-            last_key = seg
+                last_key = match_idx
+                current = current[match_idx]
+            else:
+                return None, None, None
         else:
             return None, None, None
 
