@@ -1,7 +1,6 @@
 import json
 import os
 import re
-import readline
 from importlib.metadata import version as get_version
 
 from .command_tree.dispatcher import dispatcher
@@ -177,6 +176,7 @@ class Emulator:
 
 
 def start_repl():
+    import readline
     try:
         readline.parse_and_bind(r'"\C-l": clear-screen')
 
