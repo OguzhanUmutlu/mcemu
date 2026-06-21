@@ -1,4 +1,4 @@
-from ..command_tree.arguments import PathArgument, WordArgument
+from ..command_tree.arguments import ResourceLocationArgument, WordArgument
 from ..command_tree.builder import literal, argument
 from ..command_tree.dispatcher import dispatcher
 from ..context import ExecutionContext
@@ -12,7 +12,7 @@ def exec_datapack_simple(ctx: ExecutionContext, **kwargs) -> int:
     return 1
 
 dp_node = literal("datapack").then(
-    literal("load").then(argument("path", PathArgument()).executes(exec_datapack_load))
+    literal("load").then(argument("path", ResourceLocationArgument()).executes(exec_datapack_load))
 ).then(
     literal("enable").then(argument("name", WordArgument()).executes(exec_datapack_simple))
 ).then(

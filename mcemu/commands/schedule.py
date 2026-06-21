@@ -1,4 +1,4 @@
-from ..command_tree.arguments import PathArgument, TimeArgument
+from ..command_tree.arguments import ResourceLocationArgument, TimeArgument
 from ..command_tree.builder import literal, argument
 from ..command_tree.dispatcher import dispatcher
 from ..context import ExecutionContext
@@ -23,9 +23,9 @@ def schedule_clear_cmd(ctx: ExecutionContext, path: str, **kwargs):
     return removed
 
 
-dispatcher.register(literal("schedule").then(literal("function").then(argument("path", PathArgument()).then(
+dispatcher.register(literal("schedule").then(literal("function").then(argument("path", ResourceLocationArgument()).then(
     argument("time", TimeArgument()).executes(
         lambda ctx, path, time: schedule_function_cmd(ctx, path, time, "replace")).then(
         literal("append").executes(lambda ctx, path, time: schedule_function_cmd(ctx, path, time, "append"))).then(
         literal("replace").executes(lambda ctx, path, time: schedule_function_cmd(ctx, path, time, "replace")))))).then(
-    literal("clear").then(argument("path", PathArgument()).executes(schedule_clear_cmd))))
+    literal("clear").then(argument("path", ResourceLocationArgument()).executes(schedule_clear_cmd))))

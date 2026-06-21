@@ -152,27 +152,67 @@ class ComponentArgument(ArgumentType):
             raise CommandSyntaxError("Expected JSON text component")
 
 
+class ResourceLocationArgument(ArgumentType):
+    def parse(self, tokens, pos: int):
+        if pos >= len(tokens):
+            raise CommandSyntaxError("Expected resource location")
+
+        val = ""
+        while pos < len(tokens):
+            t = tokens[pos]
+            if t.type == "WORD":
+                val += t.value
+                pos += 1
+            elif t.value in (":", "/", "-", "_", "."):
+                val += t.value
+                pos += 1
+            else:
+                break
+
+        if not val:
+            raise CommandSyntaxError("Expected resource location")
+
+        return val, pos
+
+
 class PathArgument(ArgumentType):
     def parse(self, tokens, pos: int):
         if pos >= len(tokens):
             raise CommandSyntaxError("Expected path")
 
         val = ""
-        if tokens[pos].type == "WORD":
-            val += tokens[pos].value
+        t = tokens[pos]
+        if t.type in ("WORD", "STRING"):
+            val += t.value if t.type == "WORD" else f'"{t.value}"'
             pos += 1
+        elif t.value == "[":
+            pass
+        else:
+            raise CommandSyntaxError("Expected path")
 
         while pos < len(tokens):
             t = tokens[pos]
-            if t.value in ("/", "-", "_", ":", ".", "\\", "[", "]", '"', "'"):
-                val += t.value
+            if t.value == ".":
+                val += "."
                 pos += 1
-                if pos < len(tokens) and tokens[pos].type == "WORD":
-                    val += tokens[pos].value
+                if pos < len(tokens) and tokens[pos].type in ("WORD", "STRING"):
+                    val += tokens[pos].value if tokens[pos].type == "WORD" else f'"{tokens[pos].value}"'
                     pos += 1
-                elif pos < len(tokens) and tokens[pos].type == "STRING":
-                    quote = '"' if t.value == '"' else "'" if t.value == "'" else ""
-                    val += tokens[pos].value
+            elif t.value == "[":
+                val += "["
+                pos += 1
+                depth = 1
+                while pos < len(tokens) and depth > 0:
+                    inner_t = tokens[pos]
+                    if inner_t.value == "[":
+                        depth += 1
+                    elif inner_t.value == "]":
+                        depth -= 1
+
+                    if inner_t.type == "STRING":
+                        val += f'"{inner_t.value}"'
+                    else:
+                        val += inner_t.value
                     pos += 1
             else:
                 break
@@ -262,9 +302,9 @@ class PseudoSelectorArgument(ArgumentType):
             args = {}
             if pos < len(tokens) and tokens[pos].value == "[":
                 is_selector_args = False
-                if pos + 1 < len(tokens) and tokens[pos+1].value == "]":
+                if pos + 1 < len(tokens) and tokens[pos + 1].value == "]":
                     is_selector_args = True
-                elif pos + 2 < len(tokens) and tokens[pos+2].value == "=":
+                elif pos + 2 < len(tokens) and tokens[pos + 2].value == "=":
                     is_selector_args = True
 
                 if is_selector_args:
