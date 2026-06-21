@@ -73,11 +73,6 @@ class World:
             self.entities.remove(entity)
 
     def get_score(self, target_str: str, objective: str) -> int:
-        if objective == "__flare__constant__":
-            try:
-                return int(target_str.split("_")[0])
-            except:
-                pass
         if objective not in self.objectives:
             raise RuntimeError(f"Objective '{objective}' does not exist")
         return self.scoreboards.get(objective, {}).get(target_str, 0)
