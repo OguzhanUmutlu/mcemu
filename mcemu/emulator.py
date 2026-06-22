@@ -51,7 +51,7 @@ class Emulator:
             
         data_dir = os.path.join(pack_path, "data")
         if not os.path.isdir(data_dir):
-            return 1
+            return 0
 
         for ns in os.listdir(data_dir):
             ns_dir = os.path.join(data_dir, ns)
@@ -84,7 +84,7 @@ class Emulator:
             self.execute_function("#minecraft:load", ctx)
             
         print(f"\033[92mSuccessfully loaded datapack: {os.path.basename(pack_path)}\033[0m")
-        return 1
+        return 0
 
     def execute_function(self, func_id: str, ctx: ExecutionContext = None, macro_args: dict = None) -> int:
         if not self.allow_functions:
@@ -160,7 +160,7 @@ class Emulator:
                 self.execute_command(line, ctx)
         except CommandReturn as e:
             return e.value
-        return 1
+        return 0
 
     def tick(self):
         self.world.current_tick += 1

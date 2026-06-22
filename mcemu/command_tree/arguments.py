@@ -37,7 +37,10 @@ class IntRangeArgument(ArgumentType):
         start_pos = pos
         while pos < len(tokens):
             t = tokens[pos]
-            if t.value in ("..", "-") or t.value.isdigit() or (t.value.startswith("-") and t.value[1:].isdigit()):
+            if ".." in t.value:
+                val += t.value
+                pos += 1
+            elif t.value in ("..", "-") or t.value.isdigit() or (t.value.startswith("-") and t.value[1:].isdigit()):
                 val += t.value
                 pos += 1
             else:
