@@ -161,14 +161,19 @@ class ResourceLocationArgument(ArgumentType):
             raise CommandSyntaxError("Expected resource location")
 
         val = ""
+        last_was_word = False
         while pos < len(tokens):
             t = tokens[pos]
             if t.type == "WORD":
+                if last_was_word:
+                    break
                 val += t.value
                 pos += 1
+                last_was_word = True
             elif t.value in (":", "/", "-", "_", "."):
                 val += t.value
                 pos += 1
+                last_was_word = False
             else:
                 break
 

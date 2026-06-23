@@ -149,14 +149,24 @@ class Emulator:
             with open(filepath, "r") as f:
                 lines = f.readlines()
             for line in lines:
-                if macro_args:
-                    def replace_macro(match):
-                        key = match.group(1)
-                        if key in macro_args:
-                            return str(macro_args[key])
-                        return match.group(0)
-
-                    line = re.sub(r'\$\(([a-zA-Z0-9_]+)\)', replace_macro, line)
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                
+                if line.startswith("$"):
+                    line = line[1:].strip()
+                    if macro_args:
+                        for key, val in macro_args.items():
+                            if isinstance(val, (dict, list)):
+                                val_str = json.dumps(val)
+                            else:
+                                val_str = str(val)
+                            
+                            placeholder = f"$({key})"
+                            while placeholder in line:
+                                line = line.replace(placeholder, val_str)
+                elif macro_args:
+                    pass
                 self.execute_command(line, ctx)
         except CommandReturn as e:
             return e.value

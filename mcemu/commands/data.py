@@ -95,10 +95,6 @@ class NBTPath:
         self._parse()
 
     def _parse(self):
-        """Tokenize an NBT path properly, respecting bracket depth so that
-        dots inside JSON dict-filter expressions are never treated as
-        path separators.
-        """
         s = self.raw_path
         i = 0
         n = len(s)
@@ -148,7 +144,14 @@ class NBTPath:
 
 def _get_target_dicts(ctx: ExecutionContext, target_type: str, args: dict) -> List[dict]:
     if target_type == "block":
-        pos = args.get("pos")
+        pos_arg = args.get("pos")
+        if pos_arg and isinstance(pos_arg, tuple) and len(pos_arg) == 3:
+            px = int(pos_arg[0].resolve(ctx.position[0]))
+            py = int(pos_arg[1].resolve(ctx.position[1]))
+            pz = int(pos_arg[2].resolve(ctx.position[2]))
+            pos = (px, py, pz)
+        else:
+            pos = pos_arg
         if pos not in ctx.world.block_nbt:
             ctx.world.block_nbt[pos] = {}
         return [ctx.world.block_nbt[pos]]
@@ -166,7 +169,6 @@ def _get_target_dicts(ctx: ExecutionContext, target_type: str, args: dict) -> Li
 
 
 def _match_filter(item, filt):
-    """Return True if item matches the dict filter."""
     if filt is None:
         return True
     if isinstance(filt, dict):
