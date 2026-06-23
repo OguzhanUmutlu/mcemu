@@ -551,9 +551,17 @@ def _get_target_leaf(node):
 
 
 data_root = literal("data")
+get_node = literal("get")
+merge_node = literal("merge")
+remove_node = literal("remove")
+modify_node = literal("modify")
+
+data_root.then(get_node)
+data_root.then(merge_node)
+data_root.then(remove_node)
+data_root.then(modify_node)
 
 for target_type in ("block", "entity", "storage"):
-    get_node = literal("get")
     target_node_get = _build_target_branch(target_type)
     leaf_get = _get_target_leaf(target_node_get)
     leaf_get.executes(lambda ctx, t=target_type, **k: data_get(ctx, target_type=t, **k)).then(
@@ -562,25 +570,19 @@ for target_type in ("block", "entity", "storage"):
             argument("scale", FloatArgument()).executes(
                 lambda ctx, t=target_type, **k: data_get(ctx, target_type=t, **k))))
     get_node.then(target_node_get)
-    data_root.then(get_node)
 
-    merge_node = literal("merge")
     target_node_merge = _build_target_branch(target_type)
     leaf_merge = _get_target_leaf(target_node_merge)
     leaf_merge.then(
         argument("nbt", NBTArgument()).executes(lambda ctx, t=target_type, **k: data_merge(ctx, target_type=t, **k)))
     merge_node.then(target_node_merge)
-    data_root.then(merge_node)
 
-    remove_node = literal("remove")
     target_node_remove = _build_target_branch(target_type)
     leaf_remove = _get_target_leaf(target_node_remove)
     leaf_remove.then(
         argument("path", PathArgument()).executes(lambda ctx, t=target_type, **k: data_remove(ctx, target_type=t, **k)))
     remove_node.then(target_node_remove)
-    data_root.then(remove_node)
 
-    modify_node = literal("modify")
     target_node_modify = _build_target_branch(target_type)
     leaf_modify = _get_target_leaf(target_node_modify)
 
@@ -591,7 +593,5 @@ for target_type in ("block", "entity", "storage"):
 
     for op in ("append", "insert", "merge", "prepend", "set"):
         path_node.then(_build_modify_op(op, target_type))
-
-    data_root.then(modify_node)
 
 dispatcher.register(data_root)
