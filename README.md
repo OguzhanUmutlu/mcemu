@@ -106,6 +106,10 @@ To run the built-in test suite locally, use the provided script:
 
 This automatically sets up a virtual environment and runs `pytest` across the package.
 
+## 🤖 Notice
+
+This package was developed with the assistance of Artificial Intelligence (AI) tools to aid in coding, testing, and documentation generation.
+
 ## 📄 License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.

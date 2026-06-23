@@ -1,5 +1,6 @@
 import copy
 import json
+import re
 from typing import Any, List, Tuple
 
 from ..command_tree.arguments import WordArgument, BlockPosArgument, SelectorArgument, NBTArgument, IntArgument, \
@@ -7,6 +8,28 @@ from ..command_tree.arguments import WordArgument, BlockPosArgument, SelectorArg
 from ..command_tree.builder import literal, argument
 from ..command_tree.dispatcher import dispatcher
 from ..context import ExecutionContext, resolve_target_selector, get_entities_from_target_strings
+
+
+def to_snbt(val: Any) -> str:
+    if isinstance(val, dict):
+        parts = []
+        for k, v in val.items():
+            k_str = str(k) if re.match(r"^[a-zA-Z0-9_\-\.\+]+$", str(k)) else f'"{k}"'
+            parts.append(f"{k_str}:{to_snbt(v)}")
+        return "{" + ",".join(parts) + "}"
+    elif isinstance(val, list):
+        return "[" + ",".join(to_snbt(v) for v in val) + "]"
+    elif isinstance(val, str):
+        val_escaped = val.replace('\\', '\\\\').replace('"', '\\"')
+        return f'"{val_escaped}"'
+    elif isinstance(val, bool):
+        return "1b" if val else "0b"
+    elif hasattr(val, '__class__') and val.__class__.__name__.startswith("NBT"):
+        return str(val)
+    elif isinstance(val, float):
+        return f"{val}d"
+    else:
+        return str(val)
 
 
 class NBTByte(int):
@@ -322,7 +345,7 @@ def data_modify(ctx: ExecutionContext, target_type: str, modify_op: str, source_
     source_val = None
     if source_type == "value":
         source_val = kwargs.get("value")
-    elif source_type == "from":
+    elif source_type in ("from", "string"):
         src_target_type = kwargs.get("source_target_type")
         src_dicts = _get_target_dicts(ctx, src_target_type,
                                       {"pos": kwargs.get("source_pos"), "target": kwargs.get("source_target"),
@@ -333,6 +356,31 @@ def data_modify(ctx: ExecutionContext, target_type: str, modify_op: str, source_
                 _, _, source_val = _traverse_nbt(src_dicts[0], NBTPath(src_path_str))
             else:
                 source_val = src_dicts[0]
+
+        if source_type == "string":
+            if source_val is None:
+                return 0
+            
+            s_val = to_snbt(source_val)
+            # wait, if source_val is already a string tag, in Minecraft SNBT the string's content is used rather than literal quote inclusion.
+            # but standard to_snbt puts quotes. For 'data modify ... string ...' if the target is a string, does it use the raw string or quote it?
+            # It actually uses the unquoted string value if it was a string tag originally.
+            if isinstance(source_val, str):
+                s_val = source_val
+            elif hasattr(source_val, '__class__') and source_val.__class__.__name__.startswith("NBT") and not isinstance(source_val, (int, float)):
+                # primitive nbt like NBTInt
+                s_val = str(source_val)
+
+            start = kwargs.get("start")
+            end = kwargs.get("end")
+
+            if start is not None:
+                if end is not None:
+                    s_val = s_val[start:end]
+                else:
+                    s_val = s_val[start:]
+
+            source_val = s_val
 
     if source_val is None:
         return 0
@@ -417,6 +465,66 @@ def _build_source_branch(target_type: str, modify_op: str):
     return node
 
 
+def _build_string_branch(target_type: str, modify_op: str):
+    node = literal("string")
+
+    for t_type in ("block", "entity", "storage"):
+        t_node = literal(t_type)
+        if t_type == "block":
+            t_node.then(argument("source_pos", BlockPosArgument()).then(
+                argument("source_path", PathArgument()).executes(
+                    lambda ctx, t=target_type, op=modify_op, **k: data_modify(ctx, target_type=t, modify_op=op,
+                                                                              source_type="string",
+                                                                              source_target_type="block", **k)).then(
+                    argument("start", IntArgument()).executes(
+                        lambda ctx, t=target_type, op=modify_op, **k: data_modify(ctx, target_type=t, modify_op=op,
+                                                                                  source_type="string",
+                                                                                  source_target_type="block", **k)).then(
+                        argument("end", IntArgument()).executes(
+                            lambda ctx, t=target_type, op=modify_op, **k: data_modify(ctx, target_type=t, modify_op=op,
+                                                                                      source_type="string",
+                                                                                      source_target_type="block", **k))
+                    )
+                )
+            ))
+        elif t_type == "entity":
+            t_node.then(argument("source_target", SelectorArgument()).then(
+                argument("source_path", PathArgument()).executes(
+                    lambda ctx, t=target_type, op=modify_op, **k: data_modify(ctx, target_type=t, modify_op=op,
+                                                                              source_type="string",
+                                                                              source_target_type="entity", **k)).then(
+                    argument("start", IntArgument()).executes(
+                        lambda ctx, t=target_type, op=modify_op, **k: data_modify(ctx, target_type=t, modify_op=op,
+                                                                                  source_type="string",
+                                                                                  source_target_type="entity", **k)).then(
+                        argument("end", IntArgument()).executes(
+                            lambda ctx, t=target_type, op=modify_op, **k: data_modify(ctx, target_type=t, modify_op=op,
+                                                                                      source_type="string",
+                                                                                      source_target_type="entity", **k))
+                    )
+                )
+            ))
+        elif t_type == "storage":
+            t_node.then(argument("source_id", WordArgument()).then(
+                argument("source_path", PathArgument()).executes(
+                    lambda ctx, t=target_type, op=modify_op, **k: data_modify(ctx, target_type=t, modify_op=op,
+                                                                              source_type="string",
+                                                                              source_target_type="storage", **k)).then(
+                    argument("start", IntArgument()).executes(
+                        lambda ctx, t=target_type, op=modify_op, **k: data_modify(ctx, target_type=t, modify_op=op,
+                                                                                  source_type="string",
+                                                                                  source_target_type="storage", **k)).then(
+                        argument("end", IntArgument()).executes(
+                            lambda ctx, t=target_type, op=modify_op, **k: data_modify(ctx, target_type=t, modify_op=op,
+                                                                                      source_type="string",
+                                                                                      source_target_type="storage", **k))
+                    )
+                )
+            ))
+        node.then(t_node)
+    return node
+
+
 def _build_modify_op(op: str, target_type: str):
     node = literal(op)
 
@@ -431,6 +539,7 @@ def _build_modify_op(op: str, target_type: str):
     leaf.then(val_node)
 
     leaf.then(_build_source_branch(target_type, op))
+    leaf.then(_build_string_branch(target_type, op))
     return node
 
 
