@@ -9,17 +9,15 @@ class DummyNode(CommandNode):
     def get_usage(self): return ""
 
 execute_root = literal("execute")
-execute_subcommand = DummyNode()
+execute_subcommand = DummyNode().executes(lambda ctx, **k: 1)
 execute_root.then(execute_subcommand)
 
 execute_run = literal("run").forks(dispatcher.root)
 execute_subcommand.then(execute_run)
 
-# as/at
 execute_subcommand.then(literal("as").then(argument("target", SelectorArgument()).forks(execute_subcommand, ExecuteAsModifier())))
 execute_subcommand.then(literal("at").then(argument("target", SelectorArgument()).forks(execute_subcommand, ExecuteAtModifier())))
 
-# store
 execute_store_score = literal("score").then(argument("store_target", SelectorArgument()).then(
     argument("store_objective", ObjectiveArgument()).forks(execute_subcommand, ExecuteStoreScoreModifier())))
 
@@ -33,7 +31,6 @@ execute_store = literal("store").then(
     literal("result").then(execute_store_score).then(execute_store_result_type).then(execute_store_result_nbt))
 execute_subcommand.then(execute_store)
 
-# positioned
 execute_subcommand.then(
     literal("positioned").then(
         literal("as").then(argument("target", SelectorArgument()).forks(execute_subcommand, ExecutePositionedAsModifier()))
@@ -42,10 +39,8 @@ execute_subcommand.then(
     )
 )
 
-# aligned
 execute_subcommand.then(literal("aligned").then(argument("axes", WordArgument()).forks(execute_subcommand, ExecuteAlignedModifier())))
 
-# facing
 execute_subcommand.then(
     literal("facing").then(
         literal("entity").then(argument("target", SelectorArgument()).then(argument("anchor", WordArgument()).forks(execute_subcommand, ExecuteFacingEntityModifier())))
@@ -54,7 +49,6 @@ execute_subcommand.then(
     )
 )
 
-# rotated
 execute_subcommand.then(
     literal("rotated").then(
         literal("as").then(argument("target", SelectorArgument()).forks(execute_subcommand, ExecuteRotatedAsModifier()))
@@ -63,44 +57,48 @@ execute_subcommand.then(
     )
 )
 
-# anchored
 execute_subcommand.then(literal("anchored").then(argument("anchor", WordArgument()).forks(execute_subcommand, ExecuteAnchoredModifier())))
 
-# in
 execute_subcommand.then(literal("in").then(argument("dimension", WordArgument()).forks(execute_subcommand, ExecuteInModifier())))
 
-# on
 execute_subcommand.then(literal("on").then(argument("relation", WordArgument()).forks(execute_subcommand, ExecuteOnModifier())))
 
-# summon
 execute_subcommand.then(literal("summon").then(argument("entity_type", WordArgument()).forks(execute_subcommand, ExecuteSummonModifier())))
 
-# if / unless
 for condition_mode in ["if", "unless"]:
     invert = (condition_mode == "unless")
     condition_node = literal(condition_mode)
     
-    # block
     condition_node.then(
         literal("block").then(argument("pos", BlockPosArgument()).then(argument("block", BlockStateArgument()).forks(execute_subcommand, ExecuteIfBlockModifier(invert))))
     )
-    # blocks
     condition_node.then(
         literal("blocks").then(argument("start", BlockPosArgument()).then(argument("end", BlockPosArgument()).then(
             argument("destination", BlockPosArgument()).then(argument("scan_mode", WordArgument()).forks(execute_subcommand, ExecuteIfBlocksModifier(invert)))
         )))
     )
-    # data
-    condition_node.then(
-        literal("data").then(argument("data_type", WordArgument()).then(argument("source", WordArgument()).then(
-            argument("path", PathArgument()).forks(execute_subcommand, ExecuteIfDataModifier(invert))
-        )))
-    )
-    # entity
+    data_node = literal("data")
+    for t_type in ("block", "entity", "storage"):
+        t_node = literal(t_type)
+        if t_type == "block":
+            t_node.then(argument("source_pos", BlockPosArgument()).then(
+                argument("path", PathArgument()).forks(execute_subcommand, ExecuteIfDataModifier(invert, t_type))
+            ))
+        elif t_type == "entity":
+            from ..command_tree.arguments import SingleEntitySelectorArgument
+            t_node.then(argument("source_target", SingleEntitySelectorArgument()).then(
+                argument("path", PathArgument()).forks(execute_subcommand, ExecuteIfDataModifier(invert, t_type))
+            ))
+        elif t_type == "storage":
+            t_node.then(argument("source_id", WordArgument()).then(
+                argument("path", PathArgument()).forks(execute_subcommand, ExecuteIfDataModifier(invert, t_type))
+            ))
+        data_node.then(t_node)
+    condition_node.then(data_node)
+    
     condition_node.then(
         literal("entity").then(argument("target", SelectorArgument()).forks(execute_subcommand, ExecuteIfEntityModifier(invert)))
     )
-    # score
     target_obj_node = argument("target_obj", ObjectiveArgument())
     score_node = literal("score").then(argument("target", SelectorArgument()).then(target_obj_node))
     target_obj_node.then(

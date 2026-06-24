@@ -63,6 +63,7 @@ class World:
         self.opped: Set[str] = set()
         self.whitelisted: Set[str] = set()
         self.seed: int = 0
+        self.bossbars: Dict[str, Dict[str, Any]] = {}
 
     def add_entity(self, entity: Entity):
         self.entities.append(entity)

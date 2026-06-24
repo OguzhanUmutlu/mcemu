@@ -2,6 +2,7 @@ from . import advancement
 from . import attribute
 from . import ban
 from . import ban_ip
+from . import bossbar
 from . import clear
 from . import clone
 from . import damage

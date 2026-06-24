@@ -250,8 +250,12 @@ def start_repl():
                 else:
                     print("\033[91mUsage: getblock <x> <y> <z>\033[0m")
                 continue
-            res = emu.execute_command(cmd)
-            last_returncode = res
+            try:
+                res = emu.execute_command(cmd)
+                last_returncode = res
+            except CommandReturn as e:
+                print(f"\033[92mReturned with code: {e.value}\033[0m")
+                last_returncode = e.value
         except KeyboardInterrupt:
             break
         except EOFError:

@@ -20,7 +20,10 @@ class IntArgument(ArgumentType):
             raise CommandSyntaxError("Expected integer")
         t = tokens[pos]
         try:
-            return int(t.value), pos + 1
+            val = int(t.value)
+            if val < -2147483648 or val > 2147483647:
+                raise CommandSyntaxError(f"Integer '{t.value}' is out of bounds (must be between -2147483648 and 2147483647)")
+            return val, pos + 1
         except ValueError:
             raise CommandSyntaxError(f"Expected integer, got '{t.value}'")
 
@@ -52,14 +55,19 @@ class IntRangeArgument(ArgumentType):
         min_val = None
         max_val = None
 
+        def check_bound(v):
+            if v < -2147483648 or v > 2147483647:
+                raise CommandSyntaxError(f"Integer '{v}' is out of bounds (must be between -2147483648 and 2147483647)")
+            return v
+
         if ".." in val:
             parts = val.split("..", 1)
             if parts[0]:
-                min_val = int(parts[0])
+                min_val = check_bound(int(parts[0]))
             if parts[1]:
-                max_val = int(parts[1])
+                max_val = check_bound(int(parts[1]))
         else:
-            min_val = int(val)
+            min_val = check_bound(int(val))
             max_val = min_val
 
         return (min_val, max_val), pos
@@ -193,7 +201,7 @@ class PathArgument(ArgumentType):
         if t.type in ("WORD", "STRING"):
             val += t.value if t.type == "WORD" else f'"{t.value}"'
             pos += 1
-        elif t.value == "[":
+        elif t.value in ("[", "{"):
             pass
         else:
             raise CommandSyntaxError("Expected path")
@@ -206,16 +214,20 @@ class PathArgument(ArgumentType):
                 if pos < len(tokens) and tokens[pos].type in ("WORD", "STRING"):
                     val += tokens[pos].value if tokens[pos].type == "WORD" else f'"{tokens[pos].value}"'
                     pos += 1
-            elif t.value == "[":
-                val += "["
+            elif t.value in ("[", "{"):
+                val += t.value
                 pos += 1
-                depth = 1
-                while pos < len(tokens) and depth > 0:
+                bracket_stack = [t.value]
+                while pos < len(tokens) and bracket_stack:
                     inner_t = tokens[pos]
-                    if inner_t.value == "[":
-                        depth += 1
+                    if inner_t.value in ("[", "{"):
+                        bracket_stack.append(inner_t.value)
                     elif inner_t.value == "]":
-                        depth -= 1
+                        if bracket_stack and bracket_stack[-1] == "[":
+                            bracket_stack.pop()
+                    elif inner_t.value == "}":
+                        if bracket_stack and bracket_stack[-1] == "{":
+                            bracket_stack.pop()
 
                     if inner_t.type == "STRING":
                         val += f'"{inner_t.value}"'
@@ -265,12 +277,15 @@ class WordArgument(ArgumentType):
 
         while pos < len(tokens):
             t = tokens[pos]
-            if t.value in (":", "."):
+            if t.value in (":", ".", "-"):
                 val += t.value
                 pos += 1
                 if pos < len(tokens) and tokens[pos].type == "WORD":
                     val += tokens[pos].value
                     pos += 1
+            elif t.type == "WORD" and t.value.startswith("-"):
+                val += t.value
+                pos += 1
             else:
                 break
         return val, pos
@@ -345,6 +360,21 @@ class PseudoSelectorArgument(ArgumentType):
 class SelectorArgument(PseudoSelectorArgument):
     def get_name(self) -> str:
         return "target"
+
+
+class SingleEntitySelectorArgument(SelectorArgument):
+    def parse(self, tokens, pos: int):
+        val, new_pos = super().parse(tokens, pos)
+        if not val.is_pseudo:
+            is_single = val.base in ("s", "p", "r", "n")
+            if val.arguments and "limit" in val.arguments:
+                if val.arguments["limit"] == "1":
+                    is_single = True
+                else:
+                    is_single = False
+            if not is_single:
+                raise CommandSyntaxError("Only one entity is allowed, but the provided selector allows more than one")
+        return val, new_pos
 
 
 class ItemData:

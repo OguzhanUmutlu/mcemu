@@ -32,6 +32,11 @@ def resolve_target_selector(selector: TargetSelectorData, ctx: ExecutionContext)
     elif selector.base == "r":
         if ctx.world.entities:
             candidates = [random.choice(ctx.world.entities)]
+    elif selector.base == "n":
+        candidates = ctx.world.entities[:]
+        if ctx.executor:
+            ex_x, ex_y, ex_z = ctx.executor.pos
+            candidates.sort(key=lambda e: (e.pos[0]-ex_x)**2 + (e.pos[1]-ex_y)**2 + (e.pos[2]-ex_z)**2)
 
     for entity in candidates:
         valid = True
@@ -56,6 +61,8 @@ def resolve_target_selector(selector: TargetSelectorData, ctx: ExecutionContext)
     if selector.arguments and "limit" in selector.arguments:
         limit = int(selector.arguments["limit"])
         targets = targets[:limit]
+    elif selector.base == "n":
+        targets = targets[:1]
 
     return targets
 

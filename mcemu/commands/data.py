@@ -4,7 +4,7 @@ import re
 from typing import Any, List, Tuple
 
 from ..command_tree.arguments import WordArgument, BlockPosArgument, SelectorArgument, NBTArgument, IntArgument, \
-    FloatArgument, PathArgument, ArgumentType, CommandSyntaxError
+    FloatArgument, PathArgument, ArgumentType, CommandSyntaxError, SingleEntitySelectorArgument
 from ..command_tree.builder import literal, argument
 from ..command_tree.dispatcher import dispatcher
 from ..context import ExecutionContext, resolve_target_selector, get_entities_from_target_strings
@@ -362,13 +362,9 @@ def data_modify(ctx: ExecutionContext, target_type: str, modify_op: str, source_
                 return 0
             
             s_val = to_snbt(source_val)
-            # wait, if source_val is already a string tag, in Minecraft SNBT the string's content is used rather than literal quote inclusion.
-            # but standard to_snbt puts quotes. For 'data modify ... string ...' if the target is a string, does it use the raw string or quote it?
-            # It actually uses the unquoted string value if it was a string tag originally.
             if isinstance(source_val, str):
                 s_val = source_val
             elif hasattr(source_val, '__class__') and source_val.__class__.__name__.startswith("NBT") and not isinstance(source_val, (int, float)):
-                # primitive nbt like NBTInt
                 s_val = str(source_val)
 
             start = kwargs.get("start")
@@ -422,7 +418,7 @@ def _build_target_branch(name: str):
     if name == "block":
         return node.then(argument("pos", BlockPosArgument()))
     elif name == "entity":
-        return node.then(argument("target", SelectorArgument()))
+        return node.then(argument("target", SingleEntitySelectorArgument()))
     elif name == "storage":
         return node.then(argument("id", WordArgument()))
     return node
@@ -443,7 +439,7 @@ def _build_source_branch(target_type: str, modify_op: str):
                                                                               source_type="from",
                                                                               source_target_type="block", **k))))
         elif t_type == "entity":
-            t_node.then(argument("source_target", SelectorArgument()).executes(
+            t_node.then(argument("source_target", SingleEntitySelectorArgument()).executes(
                 lambda ctx, t=target_type, op=modify_op, **k: data_modify(ctx, target_type=t, modify_op=op,
                                                                           source_type="from",
                                                                           source_target_type="entity", **k)).then(
@@ -488,7 +484,7 @@ def _build_string_branch(target_type: str, modify_op: str):
                 )
             ))
         elif t_type == "entity":
-            t_node.then(argument("source_target", SelectorArgument()).then(
+            t_node.then(argument("source_target", SingleEntitySelectorArgument()).then(
                 argument("source_path", PathArgument()).executes(
                     lambda ctx, t=target_type, op=modify_op, **k: data_modify(ctx, target_type=t, modify_op=op,
                                                                               source_type="string",

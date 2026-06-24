@@ -71,7 +71,7 @@ def exec_tellraw(ctx: ExecutionContext, target: list, message: dict) -> int:
     return len(entities)
 
 
-def exec_simple(ctx: ExecutionContext, *args) -> int:
+def exec_simple(ctx: ExecutionContext, **kwargs) -> int:
     return 1
 
 
@@ -90,11 +90,10 @@ tr_target.then(tr_msg)
 tellraw_cmd.then(tr_target)
 dispatcher.register(tellraw_cmd)
 
-for name in ["title", "tm", "bossbar", "particle", "playsound", "stopsound", "dialog", "forceload", "list", "transfer",
+for name in ["title", "tm", "particle", "playsound", "stopsound", "dialog", "forceload", "list", "transfer",
              "team", "setidletimeout"]:
     cmd = LiteralNode(name)
     args = ArgumentNode("args", GreedyStringArgument())
     args.executes(exec_simple)
-    cmd.executes(exec_simple)
     cmd.then(args)
     dispatcher.register(cmd)

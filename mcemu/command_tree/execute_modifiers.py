@@ -414,11 +414,31 @@ class ExecuteIfBlocksModifier(ExecuteModifier):
 
 
 class ExecuteIfDataModifier(ExecuteModifier):
-    def __init__(self, invert: bool = False):
+    def __init__(self, invert: bool = False, target_type: str = "block"):
         self.invert = invert
+        self.target_type = target_type
 
     def modify(self, ctx: ExecutionContext, args: dict) -> List[ExecutionContext]:
-        result = False
+        from ..commands.data import _get_target_dicts, _traverse_nbt, NBTPath
+        
+        mapped_args = {}
+        if "source_pos" in args: mapped_args["pos"] = args["source_pos"]
+        if "source_target" in args: mapped_args["target"] = args["source_target"]
+        if "source_id" in args: mapped_args["id"] = args["source_id"]
+        
+        dicts = _get_target_dicts(ctx, self.target_type, mapped_args)
+        path = args.get("path")
+        
+        found = False
+        if dicts and path:
+            nbt_path = NBTPath(path)
+            for d in dicts:
+                parent, last_key, val = _traverse_nbt(d, nbt_path)
+                if val is not None:
+                    found = True
+                    break
+                    
         if self.invert:
-            result = not result
-        return [ctx] if result else []
+            found = not found
+            
+        return [ctx] if found else []
