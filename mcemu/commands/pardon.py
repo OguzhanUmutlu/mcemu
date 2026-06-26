@@ -7,8 +7,8 @@ def exec_pardon(ctx: ExecutionContext, target: list) -> int:
     entities = get_entities_from_target_strings(ctx, target)
     count = 0
     for entity in entities:
-        if entity.uuid in ctx.world.banned:
-            ctx.world.banned.remove(entity.uuid)
+        if entity.uuid in ctx.world.server.banned:
+            ctx.world.server.banned.remove(entity.uuid)
             count += 1
     return count
 

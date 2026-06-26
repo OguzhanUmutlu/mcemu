@@ -7,7 +7,7 @@ def exec_op(ctx: ExecutionContext, target: list) -> int:
     entities = get_entities_from_target_strings(ctx, target)
     count = 0
     for entity in entities:
-        ctx.world.opped.add(entity.uuid)
+        ctx.world.server.opped.add(entity.uuid)
         count += 1
     return count
 

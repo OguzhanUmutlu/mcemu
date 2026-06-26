@@ -83,13 +83,13 @@ class ExecuteStoreResultModifier(ExecuteModifier):
 
         for t in targets:
             if store_type == "storage":
-                target_dict = ctx.world.nbt_storage.setdefault(t, {})
+                target_dict = ctx.world.server.nbt_storage.setdefault(t, {})
             elif store_type == "entity":
                 entity = next((e for e in ctx.world.entities if str(e.uuid) == str(t) or e.name == t), None)
                 target_dict = entity.nbt if entity else None
             else:
                 target_key = f"{store_type}:{t}"
-                target_dict = ctx.world.nbt_storage.setdefault(target_key, {})
+                target_dict = ctx.world.server.nbt_storage.setdefault(target_key, {})
 
             if target_dict is not None:
                 parent, last_key, _ = _traverse_nbt(target_dict, NBTPath(path), create_missing=True)

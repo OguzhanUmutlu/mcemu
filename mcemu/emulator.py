@@ -4,7 +4,7 @@ from importlib.metadata import version as get_version
 
 from . import commands
 from .command_tree.dispatcher import dispatcher
-from .entity import World, Player, ExecutionContext
+from .entity import World, Player, ExecutionContext, Server
 from .exceptions import CommandReturn
 from .tokenizer import Tokenizer
 
@@ -13,7 +13,8 @@ _ = commands
 
 class Emulator:
     def __init__(self, allow_functions: bool = True):
-        self.world = World()
+        self.server = Server()
+        self.world = self.server.worlds["overworld"]
         self.allow_functions = allow_functions
         self.namespace_map = {}
         self.function_tags = {}
@@ -204,11 +205,11 @@ def start_repl():
     emu = Emulator()
     print(f"\033[96mMinecraft Command Engine {version_str} (Programmatic API)\033[0m")
     print(
-        "\033[93mSpecial commands: exit, reset, scores, entities, toggleblocks, getblock <x> <y> <z>, returncode\033[0m")
+        "\033[93mSpecial commands: exit, reset, scores, storages, entities, toggleblocks, getblock <x> <y> <z>, returncode\033[0m")
     last_returncode = 0
     while True:
         try:
-            cmd = input("\033[94mmcemu> \033[0m")
+            cmd = input("\x01\033[94m\x02mcemu> \x01\033[0m\x02")
             if not cmd.strip():
                 continue
             if cmd.strip().lower() == "exit":
@@ -218,6 +219,9 @@ def start_repl():
                 continue
             elif cmd.strip().lower() == "scores":
                 print(json.dumps(emu.world.scoreboards, indent=2))
+                continue
+            elif cmd.strip().lower() == "storages":
+                print(json.dumps(emu.server.nbt_storage, indent=2))
                 continue
             elif cmd.strip().lower() == "entities":
                 for e in emu.world.entities:

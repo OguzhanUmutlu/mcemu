@@ -16,7 +16,7 @@ def _normalize_id(bossbar_id: str) -> str:
 
 
 def _get_bossbar(ctx: ExecutionContext, bossbar_id: str) -> dict:
-    bar = ctx.world.bossbars.get(bossbar_id)
+    bar = ctx.world.server.bossbars.get(bossbar_id)
     if bar is None:
         raise CommandSyntaxError(f"No bossbar exists with the ID '{bossbar_id}'")
     return bar
@@ -24,9 +24,9 @@ def _get_bossbar(ctx: ExecutionContext, bossbar_id: str) -> dict:
 
 def bossbar_add(ctx: ExecutionContext, id: str, name: str, **kwargs) -> int:
     bossbar_id = _normalize_id(id)
-    if bossbar_id in ctx.world.bossbars:
+    if bossbar_id in ctx.world.server.bossbars:
         raise CommandSyntaxError(f"A bossbar with the ID '{bossbar_id}' already exists")
-    ctx.world.bossbars[bossbar_id] = {
+    ctx.world.server.bossbars[bossbar_id] = {
         "id": bossbar_id,
         "name": name,
         "max": 100,
@@ -43,13 +43,13 @@ def bossbar_add(ctx: ExecutionContext, id: str, name: str, **kwargs) -> int:
 def bossbar_remove(ctx: ExecutionContext, id: str, **kwargs) -> int:
     bossbar_id = _normalize_id(id)
     _get_bossbar(ctx, bossbar_id)
-    del ctx.world.bossbars[bossbar_id]
+    del ctx.world.server.bossbars[bossbar_id]
     print(f"Removed custom bossbar [{bossbar_id}]")
     return 1
 
 
 def bossbar_list(ctx: ExecutionContext, **kwargs) -> int:
-    bars = ctx.world.bossbars
+    bars = ctx.world.server.bossbars
     count = len(bars)
     if count == 0:
         print("There are no custom bossbars active")

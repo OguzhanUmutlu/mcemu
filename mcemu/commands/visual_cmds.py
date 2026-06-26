@@ -25,7 +25,7 @@ def format_text_component(comp, ctx: ExecutionContext = None) -> str:
             path = comp["nbt"]
             if "storage" in comp:
                 target_key = comp['storage']
-                d = ctx.world.nbt_storage.get(target_key, {})
+                d = ctx.world.server.nbt_storage.get(target_key, {})
                 parent, last_key, val = _traverse_nbt(d, NBTPath(path))
                 if val is not None:
                     text += str(val)

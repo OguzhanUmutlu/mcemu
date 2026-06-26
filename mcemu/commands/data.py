@@ -3,33 +3,11 @@ import json
 import re
 from typing import Any, List, Tuple
 
-from ..command_tree.arguments import WordArgument, BlockPosArgument, SelectorArgument, NBTArgument, IntArgument, \
+from ..command_tree.arguments import WordArgument, BlockPosArgument, NBTArgument, IntArgument, \
     FloatArgument, PathArgument, ArgumentType, CommandSyntaxError, SingleEntitySelectorArgument
 from ..command_tree.builder import literal, argument
 from ..command_tree.dispatcher import dispatcher
 from ..context import ExecutionContext, resolve_target_selector, get_entities_from_target_strings
-
-
-def to_snbt(val: Any) -> str:
-    if isinstance(val, dict):
-        parts = []
-        for k, v in val.items():
-            k_str = str(k) if re.match(r"^[a-zA-Z0-9_\-\.\+]+$", str(k)) else f'"{k}"'
-            parts.append(f"{k_str}:{to_snbt(v)}")
-        return "{" + ",".join(parts) + "}"
-    elif isinstance(val, list):
-        return "[" + ",".join(to_snbt(v) for v in val) + "]"
-    elif isinstance(val, str):
-        val_escaped = val.replace('\\', '\\\\').replace('"', '\\"')
-        return f'"{val_escaped}"'
-    elif isinstance(val, bool):
-        return "1b" if val else "0b"
-    elif hasattr(val, '__class__') and val.__class__.__name__.startswith("NBT"):
-        return str(val)
-    elif isinstance(val, float):
-        return f"{val}d"
-    else:
-        return str(val)
 
 
 class NBTByte(int):
@@ -66,6 +44,46 @@ class NBTDouble(float):
     def __str__(self): return f"{float(self)}d"
 
     def __repr__(self): return f"{float(self)}d"
+
+
+class NBTByteArray(list):
+    pass
+
+
+class NBTIntArray(list):
+    pass
+
+
+class NBTLongArray(list):
+    pass
+
+
+def to_snbt(val: Any) -> str:
+    if isinstance(val, dict):
+        parts = []
+        for k, v in val.items():
+            k_str = str(k) if re.match(r"^[a-zA-Z0-9_\-\.\+]+$", str(k)) else f'"{k}"'
+            parts.append(f"{k_str}:{to_snbt(v)}")
+        return "{" + ",".join(parts) + "}"
+    elif isinstance(val, NBTByteArray):
+        return "[B;" + ",".join(to_snbt(NBTByte(v)) for v in val) + "]"
+    elif isinstance(val, NBTIntArray):
+        return "[I;" + ",".join(to_snbt(NBTInt(v)) for v in val) + "]"
+    elif isinstance(val, NBTLongArray):
+        return "[L;" + ",".join(to_snbt(NBTLong(v)) for v in val) + "]"
+    elif isinstance(val, list):
+        return "[" + ",".join(to_snbt(v) for v in val) + "]"
+    elif isinstance(val, str):
+        val_escaped = val.replace('\\', '\\\\').replace('"', '\\"')
+        return f'"{val_escaped}"'
+    elif isinstance(val, bool):
+        return "1b" if val else "0b"
+    elif hasattr(val, "__class__") and val.__class__.__name__.startswith("NBT"):
+        return str(val)
+    elif isinstance(val, float):
+        return f"{val}d"
+    else:
+        return str(val)
 
 
 class DataValueArgument(ArgumentType):
@@ -125,35 +143,35 @@ class NBTPath:
         while i < n:
             key_start = i
             depth = 0
-            while i < n and not (s[i] == '.' and depth == 0) and not (s[i] == '[' and depth == 0):
-                if s[i] in ('{', '['):
+            while i < n and not (s[i] == "." and depth == 0) and not (s[i] == "[" and depth == 0):
+                if s[i] in ("{", "["):
                     depth += 1
-                elif s[i] in ('}', ']'):
+                elif s[i] in ("}", "]"):
                     depth -= 1
                 i += 1
             key = s[key_start:i]
             if key:
                 self.segments.append(key)
 
-            if i < n and s[i] == '.':
+            if i < n and s[i] == ".":
                 i += 1
                 continue
 
-            while i < n and s[i] == '[':
+            while i < n and s[i] == "[":
                 i += 1
                 depth = 1
                 start = i
                 while i < n and depth > 0:
-                    if s[i] == '[':
+                    if s[i] == "[":
                         depth += 1
-                    elif s[i] == ']':
+                    elif s[i] == "]":
                         depth -= 1
                     i += 1
                 inner = s[start:i - 1]
                 try:
                     self.segments.append(int(inner))
                 except ValueError:
-                    if inner == '':
+                    if inner == "":
                         self.segments.append(None)
                     else:
                         try:
@@ -161,7 +179,7 @@ class NBTPath:
                         except Exception:
                             self.segments.append(f'[{inner}]')
 
-            if i < n and s[i] == '.':
+            if i < n and s[i] == ".":
                 i += 1
 
 
@@ -185,9 +203,9 @@ def _get_target_dicts(ctx: ExecutionContext, target_type: str, args: dict) -> Li
         return [e.nbt for e in entities]
     elif target_type == "storage":
         storage_id = args.get("id")
-        if storage_id not in ctx.world.nbt_storage:
-            ctx.world.nbt_storage[storage_id] = {}
-        return [ctx.world.nbt_storage[storage_id]]
+        if storage_id not in ctx.emulator.server.nbt_storage:
+            ctx.emulator.server.nbt_storage[storage_id] = {}
+        return [ctx.emulator.server.nbt_storage[storage_id]]
     return []
 
 
@@ -310,7 +328,7 @@ def data_merge(ctx: ExecutionContext, target_type: str, **kwargs):
 
     val_dict = kwargs.get("nbt", {})
     if not isinstance(val_dict, dict):
-        return 0
+        raise CommandSyntaxError("Can only merge a compound tag")
 
     res = 0
     for d in dicts:
@@ -360,11 +378,12 @@ def data_modify(ctx: ExecutionContext, target_type: str, modify_op: str, source_
         if source_type == "string":
             if source_val is None:
                 return 0
-            
+
             s_val = to_snbt(source_val)
             if isinstance(source_val, str):
                 s_val = source_val
-            elif hasattr(source_val, '__class__') and source_val.__class__.__name__.startswith("NBT") and not isinstance(source_val, (int, float)):
+            elif hasattr(source_val, "__class__") and source_val.__class__.__name__.startswith(
+                    "NBT") and not isinstance(source_val, (int, float)):
                 s_val = str(source_val)
 
             start = kwargs.get("start")
@@ -393,9 +412,13 @@ def data_modify(ctx: ExecutionContext, target_type: str, modify_op: str, source_
             parent[last_key] = source_val
             res = 1
         elif modify_op == "merge":
-            if isinstance(val, dict) and isinstance(source_val, dict):
-                val.update(source_val)
-                res = 1
+            if not isinstance(val, dict):
+                raise CommandSyntaxError("Target must be a compound tag to merge")
+            if not isinstance(source_val, dict):
+                raise CommandSyntaxError("Source must be a compound tag to merge")
+
+            val.update(source_val)
+            res = 1
         elif modify_op in ("append", "prepend", "insert"):
             if not isinstance(val, list):
                 val = []
@@ -475,7 +498,8 @@ def _build_string_branch(target_type: str, modify_op: str):
                     argument("start", IntArgument()).executes(
                         lambda ctx, t=target_type, op=modify_op, **k: data_modify(ctx, target_type=t, modify_op=op,
                                                                                   source_type="string",
-                                                                                  source_target_type="block", **k)).then(
+                                                                                  source_target_type="block",
+                                                                                  **k)).then(
                         argument("end", IntArgument()).executes(
                             lambda ctx, t=target_type, op=modify_op, **k: data_modify(ctx, target_type=t, modify_op=op,
                                                                                       source_type="string",
@@ -492,7 +516,8 @@ def _build_string_branch(target_type: str, modify_op: str):
                     argument("start", IntArgument()).executes(
                         lambda ctx, t=target_type, op=modify_op, **k: data_modify(ctx, target_type=t, modify_op=op,
                                                                                   source_type="string",
-                                                                                  source_target_type="entity", **k)).then(
+                                                                                  source_target_type="entity",
+                                                                                  **k)).then(
                         argument("end", IntArgument()).executes(
                             lambda ctx, t=target_type, op=modify_op, **k: data_modify(ctx, target_type=t, modify_op=op,
                                                                                       source_type="string",
@@ -509,11 +534,13 @@ def _build_string_branch(target_type: str, modify_op: str):
                     argument("start", IntArgument()).executes(
                         lambda ctx, t=target_type, op=modify_op, **k: data_modify(ctx, target_type=t, modify_op=op,
                                                                                   source_type="string",
-                                                                                  source_target_type="storage", **k)).then(
+                                                                                  source_target_type="storage",
+                                                                                  **k)).then(
                         argument("end", IntArgument()).executes(
                             lambda ctx, t=target_type, op=modify_op, **k: data_modify(ctx, target_type=t, modify_op=op,
                                                                                       source_type="string",
-                                                                                      source_target_type="storage", **k))
+                                                                                      source_target_type="storage",
+                                                                                      **k))
                     )
                 )
             ))

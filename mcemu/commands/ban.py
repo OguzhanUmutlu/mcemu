@@ -7,7 +7,7 @@ def exec_ban(ctx: ExecutionContext, target: list, reason: str = "") -> int:
     entities = get_entities_from_target_strings(ctx, target)
     count = 0
     for entity in entities:
-        ctx.world.banned.add(entity.uuid)
+        ctx.world.server.banned.add(entity.uuid)
         count += 1
     return count
 

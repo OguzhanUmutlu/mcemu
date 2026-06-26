@@ -39,12 +39,28 @@ class Player(Entity):
         self.uuid = name
 
 
-class World:
+class Server:
     def __init__(self):
+        self.nbt_storage: Dict[str, Dict[str, Any]] = {}
+
+        self.banned: Set[str] = set()
+        self.banned_ips: Set[str] = set()
+        self.opped: Set[str] = set()
+        self.whitelisted: Set[str] = set()
+
+        self.bossbars: Dict[str, Dict[str, Any]] = {}
+
+        self.worlds = {"overworld": World(self), "nether": World(self), "the_end": World(self)}
+
+
+class World:
+    def __init__(self, server: Server):
+        self.server = server
+
         self.entities: List[Entity] = []
         self.scoreboards: Dict[str, Dict[str, int]] = {}
         self.objectives: Dict[str, Dict[str, str]] = {}
-        self.nbt_storage: Dict[str, Dict[str, Any]] = {}
+
         self.current_tick: int = 0
         self.scheduled_tasks: List[Dict[str, Any]] = []
 
@@ -57,13 +73,7 @@ class World:
         self.difficulty: str = "normal"
         self.gamerules: Dict[str, Any] = {}
         self.worldborder: Dict[str, Any] = {"center": (0.0, 0.0), "size": 60000000.0}
-
-        self.banned: Set[str] = set()
-        self.banned_ips: Set[str] = set()
-        self.opped: Set[str] = set()
-        self.whitelisted: Set[str] = set()
         self.seed: int = 0
-        self.bossbars: Dict[str, Dict[str, Any]] = {}
 
     def add_entity(self, entity: Entity):
         self.entities.append(entity)
