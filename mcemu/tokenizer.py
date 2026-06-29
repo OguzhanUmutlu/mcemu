@@ -33,6 +33,8 @@ class Tokenizer:
                         self.pos += 2
                     else:
                         self.pos += 1
+                if self.pos >= len(self.text):
+                    raise SyntaxError(f"Unterminated string literal (missing closing {quote_type!r})")
                 val = self.text[start: self.pos]
                 val = val.replace("\\" + quote_type, quote_type)
                 tokens.append(Token("STRING", val))

@@ -25,8 +25,8 @@ class Emulator:
     def execute_command(self, cmd_str: str, ctx: ExecutionContext = None) -> int:
         if not cmd_str.strip() or cmd_str.strip().startswith("#"):
             return 0
-        tokens = Tokenizer(cmd_str).tokenize()
         try:
+            tokens = Tokenizer(cmd_str).tokenize()
             if ctx is None:
                 ctx = ExecutionContext(self.world, executor=None, position=(0.0, 0.0, 0.0), emulator=self)
             return dispatcher.dispatch(tokens, ctx)
