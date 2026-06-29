@@ -117,13 +117,17 @@ class NBTArgument(ArgumentType):
 
         depth = 0
         while pos < len(tokens):
-            val = tokens[pos].value
+            t = tokens[pos]
+            val = t.value
             if val in ("{", "["):
                 depth += 1
             elif val in ("}", "]"):
                 depth -= 1
 
-            nbt_str += val if tokens[pos].type != "STRING" else f'"{val}"'
+            if t.type == "WORD" and pos + 1 < len(tokens) and tokens[pos+1].value == ":":
+                nbt_str += f'"{val}"'
+            else:
+                nbt_str += val if t.type != "STRING" else f'"{val}"'
             pos += 1
 
             if depth == 0:
@@ -133,7 +137,6 @@ class NBTArgument(ArgumentType):
             raise CommandSyntaxError("Unbalanced braces/brackets in NBT")
 
         dict_str = nbt_str
-        dict_str = re.sub(r'(?<!["\'\w])([a-zA-Z0-9_]+)\s*:', r'"\1":', dict_str)
         dict_str = re.sub(r'\[\s*[a-zA-Z]\s*;\s*', '[', dict_str)
         try:
             nbt_dict = json.loads(dict_str)
@@ -280,10 +283,10 @@ class WordArgument(ArgumentType):
             if t.value in (":", ".", "-"):
                 val += t.value
                 pos += 1
-                if pos < len(tokens) and tokens[pos].type == "WORD":
+                if pos < len(tokens) and tokens[pos].type == "WORD" and not tokens[pos].has_leading_space:
                     val += tokens[pos].value
                     pos += 1
-            elif t.type == "WORD" and t.value.startswith("-"):
+            elif t.type == "WORD" and t.value.startswith("-") and not t.has_leading_space:
                 val += t.value
                 pos += 1
             else:
