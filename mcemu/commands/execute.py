@@ -28,7 +28,10 @@ execute_store_result_type = argument("store_type", WordArgument()).then(
 
 execute_store_result_nbt = argument("store_nbttype", WordArgument()).then(execute_store_result_type)
 execute_store = literal("store").then(
-    literal("result").then(execute_store_score).then(execute_store_result_type).then(execute_store_result_nbt))
+    literal("result").then(execute_store_score).then(execute_store_result_type).then(execute_store_result_nbt)
+).then(
+    literal("success").then(execute_store_score).then(execute_store_result_type).then(execute_store_result_nbt)
+)
 execute_subcommand.then(execute_store)
 
 execute_subcommand.then(

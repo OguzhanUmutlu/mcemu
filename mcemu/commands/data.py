@@ -409,8 +409,9 @@ def data_modify(ctx: ExecutionContext, target_type: str, modify_op: str, source_
             continue
 
         if modify_op == "set":
-            parent[last_key] = source_val
-            res = 1
+            if last_key not in parent or parent[last_key] != source_val:
+                parent[last_key] = source_val
+                res = 1
         elif modify_op == "merge":
             if not isinstance(val, dict):
                 raise CommandSyntaxError("Target must be a compound tag to merge")
