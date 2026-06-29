@@ -39,7 +39,32 @@ class Tokenizer:
                 if self.pos >= len(self.text):
                     raise SyntaxError(f"Unterminated string literal (missing closing {quote_type!r})")
                 val = self.text[start: self.pos]
-                val = val.replace("\\" + quote_type, quote_type)
+                res = []
+                i = 0
+                while i < len(val):
+                    if val[i] == "\\" and i + 1 < len(val):
+                        nxt = val[i + 1]
+                        if nxt == quote_type:
+                            res.append(quote_type)
+                        elif nxt == "\\":
+                            res.append("\\")
+                        elif nxt == "n":
+                            res.append("\n")
+                        elif nxt == "t":
+                            res.append("\t")
+                        elif nxt == "r":
+                            res.append("\r")
+                        elif nxt == "b":
+                            res.append("\b")
+                        elif nxt == "f":
+                            res.append("\f")
+                        else:
+                            res.append("\\" + nxt)
+                        i += 2
+                    else:
+                        res.append(val[i])
+                        i += 1
+                val = "".join(res)
                 tokens.append(Token("STRING", val, had_space))
                 self.pos += 1
                 had_space = False
