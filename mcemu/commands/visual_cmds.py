@@ -7,7 +7,7 @@ from ..context import ExecutionContext, get_entities_from_target_strings
 
 def format_text_component(comp, ctx: ExecutionContext = None) -> str:
     if isinstance(comp, str):
-        return comp
+        return comp.replace("\\n", "\n").replace("\n", "\033[0m\n")
     if isinstance(comp, list):
         return "".join(format_text_component(c, ctx) for c in comp)
     if isinstance(comp, dict):
@@ -49,10 +49,11 @@ def format_text_component(comp, ctx: ExecutionContext = None) -> str:
         codes.extend(formats)
 
         if not codes:
-            return text
+            return text.replace("\\n", "\n").replace("\n", "\033[0m\n")
 
         code_str = ";".join(codes)
-        return f"\033[{code_str}m{text}\033[0m"
+        formatted_text = text.replace("\\n", "\n").replace("\n", "\033[0m\n")
+        return f"\033[{code_str}m{formatted_text}\033[0m"
     return ""
 
 
