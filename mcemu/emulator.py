@@ -62,6 +62,8 @@ class Emulator:
                 self.namespace_map[ns].append(ns_dir)
 
                 tags_dir = os.path.join(ns_dir, "tags", "functions")
+                if not os.path.isdir(tags_dir):
+                    tags_dir = os.path.join(ns_dir, "tags", "function")
                 if os.path.isdir(tags_dir):
                     for root, _, files in os.walk(tags_dir):
                         for file in files:
@@ -122,6 +124,8 @@ class Emulator:
         target_file = None
         for base_dir in reversed(self.namespace_map[ns]):
             potential_path = os.path.join(base_dir, "functions", f"{path}.mcfunction")
+            if not os.path.exists(potential_path):
+                potential_path = os.path.join(base_dir, "function", f"{path}.mcfunction")
             if os.path.exists(potential_path):
                 target_file = potential_path
                 break
